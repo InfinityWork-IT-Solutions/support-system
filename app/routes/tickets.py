@@ -116,6 +116,62 @@ def get_analytics(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/stats/performance")
+def get_performance_metrics(db: Session = Depends(get_db)):
+    tickets = db.query(Ticket).filter(Ticket.ai_processed == True).all()
+    
+    processing_times = []
+    approval_times = []
+    resolution_times = []
+    
+    for ticket in tickets:
+        if ticket.received_at and ticket.updated_at and ticket.ai_processed:
+            processing_times.append((ticket.updated_at - ticket.received_at).total_seconds() / 3600)
+        
+        if ticket.received_at and ticket.approved_at:
+            approval_times.append((ticket.approved_at - ticket.received_at).total_seconds() / 3600)
+        
+        if ticket.received_at and ticket.sent_at:
+            resolution_times.append((ticket.sent_at - ticket.received_at).total_seconds() / 3600)
+    
+    avg_processing_time = round(sum(processing_times) / len(processing_times), 2) if processing_times else 0
+    avg_approval_time = round(sum(approval_times) / len(approval_times), 2) if approval_times else 0
+    avg_resolution_time = round(sum(resolution_times) / len(resolution_times), 2) if resolution_times else 0
+    
+    approved_by_counts = db.query(
+        Ticket.approved_by,
+        func.count(Ticket.id).label('count')
+    ).filter(
+        Ticket.approved_by.isnot(None)
+    ).group_by(Ticket.approved_by).all()
+    
+    today_tickets = db.query(Ticket).filter(
+        func.date(Ticket.received_at) == func.current_date()
+    ).count()
+    
+    today_processed = db.query(Ticket).filter(
+        func.date(Ticket.received_at) == func.current_date(),
+        Ticket.ai_processed == True
+    ).count()
+    
+    today_sent = db.query(Ticket).filter(
+        func.date(Ticket.sent_at) == func.current_date()
+    ).count()
+    
+    return {
+        "avg_processing_time_hours": avg_processing_time,
+        "avg_approval_time_hours": avg_approval_time,
+        "avg_resolution_time_hours": avg_resolution_time,
+        "total_processed": len(processing_times),
+        "total_approved": len(approval_times),
+        "total_resolved": len(resolution_times),
+        "by_approver": [{"name": a[0] or "System", "count": a[1]} for a in approved_by_counts],
+        "today_tickets": today_tickets,
+        "today_processed": today_processed,
+        "today_sent": today_sent
+    }
+
+
 @router.get("/export")
 def export_tickets(
     status: Optional[str] = Query(None),

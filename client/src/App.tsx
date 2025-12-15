@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, Template, SchedulerStatus, SlackSettings, KnowledgeArticle } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, Template, SchedulerStatus, SlackSettings, KnowledgeArticle } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -92,6 +92,12 @@ function App() {
   const { data: analytics } = useQuery({
     queryKey: ['analytics'],
     queryFn: api.getAnalytics,
+    enabled: showAnalytics,
+  })
+
+  const { data: performance } = useQuery({
+    queryKey: ['performance'],
+    queryFn: api.getPerformanceMetrics,
     enabled: showAnalytics,
   })
 
@@ -837,6 +843,59 @@ function App() {
               </div>
             </div>
           </div>
+
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4">Response Time Metrics</h2>
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-3xl font-bold text-purple-600">{performance?.avg_processing_time_hours || 0}h</div>
+                <div className="text-sm text-gray-600">Avg. Processing Time</div>
+                <div className="text-xs text-gray-400 mt-1">Time to AI process ticket</div>
+              </div>
+              <div className="text-center p-4 bg-orange-50 rounded-lg">
+                <div className="text-3xl font-bold text-orange-600">{performance?.avg_approval_time_hours || 0}h</div>
+                <div className="text-sm text-gray-600">Avg. Approval Time</div>
+                <div className="text-xs text-gray-400 mt-1">Time to approve response</div>
+              </div>
+              <div className="text-center p-4 bg-teal-50 rounded-lg">
+                <div className="text-3xl font-bold text-teal-600">{performance?.avg_resolution_time_hours || 0}h</div>
+                <div className="text-sm text-gray-600">Avg. Resolution Time</div>
+                <div className="text-xs text-gray-400 mt-1">Time to send response</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4">Today's Activity</h2>
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-3xl font-bold text-gray-700">{performance?.today_tickets || 0}</div>
+                <div className="text-sm text-gray-600">Tickets Received</div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-3xl font-bold text-gray-700">{performance?.today_processed || 0}</div>
+                <div className="text-sm text-gray-600">Tickets Processed</div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-3xl font-bold text-gray-700">{performance?.today_sent || 0}</div>
+                <div className="text-sm text-gray-600">Responses Sent</div>
+              </div>
+            </div>
+          </div>
+
+          {performance?.by_approver && performance.by_approver.length > 0 && (
+            <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">Agent Performance</h2>
+              <div className="space-y-3">
+                {performance.by_approver.map((approver, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium text-gray-700">{approver.name}</span>
+                    <span className="text-lg font-bold text-primary-600">{approver.count} approved</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
