@@ -214,7 +214,7 @@ async def google_callback(
     
     import json
     user_json = json.dumps(user_data)
-    encoded_user = user_json.replace('"', '\\"')
+    escaped_json = user_json.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n').replace('\r', '\\r')
     
     html_response = f"""
     <!DOCTYPE html>
@@ -222,7 +222,7 @@ async def google_callback(
     <head><title>Signing in...</title></head>
     <body>
     <script>
-        localStorage.setItem('auth_user', '{user_json}');
+        localStorage.setItem('auth_user', '{escaped_json}');
         window.location.href = '/';
     </script>
     </body>
