@@ -9,7 +9,7 @@ from sqlalchemy import desc, or_, func
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.models import Ticket, TicketMessage, ApprovalStatus, Settings
+from app.models import Ticket, TicketMessage, ApprovalStatus, Settings, TeamMember
 from app.services.imap_service import fetch_unread_emails
 from app.services.ai_service import process_ticket
 from app.services.approval_service import approve_ticket, reject_ticket, send_approved_response
@@ -17,6 +17,16 @@ from app.services.slack_service import notify_new_ticket, notify_urgent_ticket, 
 from app.services.auto_responder_service import send_acknowledgment
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
+
+
+class AssigneeResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+
+    class Config:
+        from_attributes = True
 
 
 class TicketResponse(BaseModel):
@@ -35,6 +45,9 @@ class TicketResponse(BaseModel):
     sent_at: Optional[datetime]
     ai_processed: bool
     escalation_required: bool
+    assigned_to: Optional[int]
+    assigned_at: Optional[datetime]
+    assignee: Optional[AssigneeResponse]
     created_at: datetime
     updated_at: datetime
 
@@ -64,6 +77,10 @@ class UpdateDraftRequest(BaseModel):
 
 class BulkActionRequest(BaseModel):
     ticket_ids: List[int]
+
+
+class AssignTicketRequest(BaseModel):
+    team_member_id: Optional[int] = None
 
 
 @router.get("/stats/summary")
@@ -542,3 +559,24 @@ def bulk_send(request: BulkActionRequest, db: Session = Depends(get_db)):
         if send_approved_response(db, ticket_id):
             sent_count += 1
     return {"sent": sent_count}
+
+
+@router.post("/{ticket_id}/assign")
+def assign_ticket(ticket_id: int, request: AssignTicketRequest, db: Session = Depends(get_db)):
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    if request.team_member_id is not None:
+        member = db.query(TeamMember).filter(TeamMember.id == request.team_member_id).first()
+        if not member:
+            raise HTTPException(status_code=404, detail="Team member not found")
+        ticket.assigned_to = request.team_member_id
+        ticket.assigned_at = datetime.now()
+    else:
+        ticket.assigned_to = None
+        ticket.assigned_at = None
+    
+    db.commit()
+    db.refresh(ticket)
+    return {"status": "assigned", "assigned_to": ticket.assigned_to}

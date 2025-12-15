@@ -61,10 +61,14 @@ class Ticket(Base):
     ai_processed = Column(Boolean, default=False)
     escalation_required = Column(Boolean, default=False)
     
+    assigned_to = Column(Integer, ForeignKey("team_members.id"), nullable=True)
+    assigned_at = Column(DateTime, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     messages = relationship("TicketMessage", back_populates="ticket", order_by="TicketMessage.created_at")
+    assignee = relationship("TeamMember", foreign_keys=[assigned_to])
 
 
 class TicketMessage(Base):
@@ -106,6 +110,19 @@ class KnowledgeArticle(Base):
     category = Column(String(50), nullable=True, index=True)
     keywords = Column(Text, nullable=True)
     content = Column(Text, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    role = Column(String(50), default="agent")
+    is_active = Column(Boolean, default=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings, TeamMember } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -29,7 +29,9 @@ import {
   Lightbulb,
   Download,
   Star,
-  User
+  User,
+  Users,
+  UserPlus
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 
@@ -73,6 +75,16 @@ function App() {
     enabled: false,
     template: ''
   })
+  const [teamMemberForm, setTeamMemberForm] = useState<{
+    name: string;
+    email: string;
+    role: string;
+  }>({
+    name: '',
+    email: '',
+    role: 'agent'
+  })
+  const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -167,6 +179,16 @@ function App() {
       selectedTicket?.id
     ),
     enabled: !!selectedTicket?.sender_email,
+  })
+
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['teamMembers'],
+    queryFn: () => api.getTeamMembers(false),
+  })
+
+  const { data: activeTeamMembers = [] } = useQuery({
+    queryKey: ['activeTeamMembers'],
+    queryFn: () => api.getTeamMembers(true),
   })
 
   useEffect(() => {
@@ -369,6 +391,43 @@ function App() {
     },
   })
 
+  const createTeamMemberMutation = useMutation({
+    mutationFn: api.createTeamMember,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] })
+      queryClient.invalidateQueries({ queryKey: ['activeTeamMembers'] })
+      setTeamMemberForm({ name: '', email: '', role: 'agent' })
+    },
+  })
+
+  const updateTeamMemberMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { name?: string; email?: string; role?: string; is_active?: boolean } }) =>
+      api.updateTeamMember(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] })
+      queryClient.invalidateQueries({ queryKey: ['activeTeamMembers'] })
+      setEditingMemberId(null)
+      setTeamMemberForm({ name: '', email: '', role: 'agent' })
+    },
+  })
+
+  const deleteTeamMemberMutation = useMutation({
+    mutationFn: api.deleteTeamMember,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teamMembers'] })
+      queryClient.invalidateQueries({ queryKey: ['activeTeamMembers'] })
+    },
+  })
+
+  const assignTicketMutation = useMutation({
+    mutationFn: ({ ticketId, memberId }: { ticketId: number; memberId: number | null }) =>
+      api.assignTicket(ticketId, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ticket', selectedTicketId] })
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    },
+  })
+
   const getUrgencyColor = (urgency: string | null) => {
     switch (urgency) {
       case 'High': return 'text-red-600 bg-red-50'
@@ -469,6 +528,33 @@ function App() {
 
   const applyArticleToResponse = (article: KnowledgeArticle) => {
     setEditedDraft(article.content)
+  }
+
+  const handleEditTeamMember = (member: TeamMember) => {
+    setEditingMemberId(member.id)
+    setTeamMemberForm({ name: member.name, email: member.email, role: member.role })
+  }
+
+  const handleSaveTeamMember = () => {
+    if (editingMemberId) {
+      updateTeamMemberMutation.mutate({ id: editingMemberId, data: teamMemberForm })
+    } else {
+      createTeamMemberMutation.mutate(teamMemberForm)
+    }
+  }
+
+  const handleCancelMemberEdit = () => {
+    setEditingMemberId(null)
+    setTeamMemberForm({ name: '', email: '', role: 'agent' })
+  }
+
+  const handleAssignTicket = (memberId: string) => {
+    if (selectedTicketId) {
+      assignTicketMutation.mutate({
+        ticketId: selectedTicketId,
+        memberId: memberId ? parseInt(memberId) : null
+      })
+    }
   }
 
   if (showKnowledge) {
@@ -1441,6 +1527,112 @@ function App() {
             </div>
           </div>
 
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-600" />
+              Team Members
+            </h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-900">
+                  {editingMemberId ? 'Edit Team Member' : 'Add Team Member'}
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={teamMemberForm.name}
+                    onChange={(e) => setTeamMemberForm({ ...teamMemberForm, name: e.target.value })}
+                    placeholder="e.g., John Smith"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={teamMemberForm.email}
+                    onChange={(e) => setTeamMemberForm({ ...teamMemberForm, email: e.target.value })}
+                    placeholder="e.g., john@infinitywork.com"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                    value={teamMemberForm.role}
+                    onChange={(e) => setTeamMemberForm({ ...teamMemberForm, role: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="agent">Agent</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveTeamMember}
+                    disabled={!teamMemberForm.name || !teamMemberForm.email || createTeamMemberMutation.isPending || updateTeamMemberMutation.isPending}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    {editingMemberId ? 'Update' : 'Add'} Member
+                  </button>
+                  {editingMemberId && (
+                    <button
+                      onClick={handleCancelMemberEdit}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900 mb-3">Current Team ({teamMembers.length})</h3>
+                {teamMembers.length === 0 ? (
+                  <p className="text-sm text-gray-500">No team members added yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {teamMembers.map((member) => (
+                      <div key={member.id} className={`p-3 border rounded-lg flex items-center justify-between ${!member.is_active ? 'opacity-50 bg-gray-50' : ''}`}>
+                        <div>
+                          <div className="font-medium text-sm">{member.name}</div>
+                          <div className="text-xs text-gray-500">{member.email}</div>
+                          <span className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">{member.role}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditTeamMember(member)}
+                            className="p-1.5 text-gray-500 hover:bg-gray-200 rounded"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => updateTeamMemberMutation.mutate({ id: member.id, data: { is_active: !member.is_active } })}
+                            className={`p-1.5 rounded ${member.is_active ? 'text-yellow-600 hover:bg-yellow-50' : 'text-green-600 hover:bg-green-50'}`}
+                            title={member.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            {member.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => deleteTeamMemberMutation.mutate(member.id)}
+                            disabled={deleteTeamMemberMutation.isPending}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={handleSaveSettings}
             disabled={saveSettingsMutation.isPending || Object.keys(settingsForm).length === 0}
@@ -1737,6 +1929,31 @@ function App() {
                         {selectedTicket.approval_status}
                       </span>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">Assigned to:</span>
+                    </div>
+                    <select
+                      value={selectedTicket.assigned_to?.toString() || ''}
+                      onChange={(e) => handleAssignTicket(e.target.value)}
+                      disabled={assignTicketMutation.isPending}
+                      className="px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">Unassigned</option>
+                      {activeTeamMembers.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name} ({member.role})
+                        </option>
+                      ))}
+                    </select>
+                    {selectedTicket.assignee && (
+                      <span className="text-xs text-gray-400">
+                        Since {selectedTicket.assigned_at ? new Date(selectedTicket.assigned_at).toLocaleDateString() : ''}
+                      </span>
+                    )}
                   </div>
 
                   {selectedTicket.ai_processed && (
