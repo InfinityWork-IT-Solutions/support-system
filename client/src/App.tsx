@@ -1,3 +1,96 @@
+/**
+ * App.tsx - Main Application Component
+ * =====================================
+ * 
+ * PURPOSE:
+ * This is the main React component file for the AI Support Desk application.
+ * It contains the App component (authentication router) and the Dashboard component
+ * (main application interface).
+ * 
+ * FILE STRUCTURE (3200+ lines):
+ * -----------------------------
+ * Lines 1-50:     Imports (React, React Query, API client, icons, charts)
+ * Lines 50-75:    App Component - Authentication state management
+ * Lines 75-750:   Dashboard Component - State declarations and React Query hooks
+ * Lines 750-1100: Dashboard - Mutation functions (API actions)
+ * Lines 1100-1500: Dashboard - Helper functions and event handlers
+ * Lines 1500-3200: Dashboard - JSX rendering (UI layout)
+ * 
+ * MAIN COMPONENTS:
+ * ----------------
+ * 1. App - Root component that handles authentication
+ *    - Checks localStorage for auth_user to persist login
+ *    - Renders Login component if not authenticated
+ *    - Renders Dashboard if authenticated
+ * 
+ * 2. Dashboard - Main application interface with these sections:
+ *    - Header: Logo, user info, navigation buttons
+ *    - Left Panel: Ticket list with filters and search
+ *    - Right Panel: Selected ticket details, AI summary, approval actions
+ *    - Settings View: Email configuration, scheduler, integrations
+ *    - Analytics View: Charts and performance metrics
+ *    - Knowledge Base: Help articles management
+ *    - Templates: Response template management
+ *    - Priority Queue: SLA-sorted urgent tickets
+ * 
+ * STATE MANAGEMENT:
+ * -----------------
+ * - React Query (TanStack Query) for server state
+ * - Local state (useState) for UI state like selected ticket, form values
+ * - localStorage for authentication persistence
+ * 
+ * KEY FEATURES:
+ * -------------
+ * - Ticket Management: View, filter, approve/reject, send responses
+ * - AI Processing: Automatic categorization, urgency detection, draft generation
+ * - Bulk Actions: Approve/reject/send multiple tickets at once
+ * - Team Assignment: Assign tickets to team members
+ * - SLA Tracking: Monitor response time deadlines
+ * - Analytics: Category and urgency charts, performance metrics
+ * - Knowledge Base: Searchable solution articles
+ * - Templates: Reusable response templates
+ * - Settings: Email server configuration, notifications, scheduler
+ * 
+ * DATA FLOW:
+ * ----------
+ * 1. User actions trigger mutations (useMutation hooks)
+ * 2. Mutations call API functions from api.ts
+ * 3. On success, queries are invalidated (queryClient.invalidateQueries)
+ * 4. React Query refetches stale data automatically
+ * 5. Components re-render with fresh data
+ * 
+ * APPROVAL WORKFLOW:
+ * ------------------
+ * Critical design decision: No automated sending!
+ * 1. Ticket arrives -> AI processes (adds category, urgency, draft)
+ * 2. Human reviews AI draft in the right panel
+ * 3. Human clicks Approve or Reject button
+ * 4. If approved, human must click Send to actually email customer
+ * 
+ * TROUBLESHOOTING:
+ * ----------------
+ * - Tickets not loading: Check if Backend API workflow is running
+ * - AI not processing: Verify OPENAI_API_KEY is set
+ * - Email not sending: Check SMTP settings in Settings view
+ * - Filters not working: Check React Query cache invalidation
+ * - Slow performance: Check network tab for slow API calls
+ * - Charts not showing: Ensure recharts is installed
+ * 
+ * STYLING:
+ * --------
+ * - Tailwind CSS for utility-first styling
+ * - Enterprise design system with consistent colors:
+ *   - Primary: Blue (#3b82f6)
+ *   - Success: Green (#22c55e)  
+ *   - Warning: Yellow (#eab308)
+ *   - Danger: Red (#ef4444)
+ * - Glass-morphism effects on cards and modals
+ * 
+ * ICONS:
+ * ------
+ * All icons from lucide-react library for consistency
+ */
+
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings, TeamMember, SlaSummary, SlaSettings, SavedView, QuickFilter } from './lib/api'
@@ -45,6 +138,18 @@ import {
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 import Login from './components/Login'
 
+/**
+ * App Component - Root authentication router
+ * 
+ * Manages authentication state using localStorage for persistence.
+ * If user is authenticated, renders Dashboard; otherwise renders Login.
+ * 
+ * Authentication flow:
+ * 1. On mount, checks localStorage for 'auth_user' key
+ * 2. If found, user is considered logged in
+ * 3. Login component calls handleLogin() after Google OAuth success
+ * 4. handleLogout() clears localStorage and resets state
+ */
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return !!localStorage.getItem('auth_user')
@@ -72,6 +177,25 @@ function App() {
   return <Dashboard currentUser={currentUser} onLogout={handleLogout} />
 }
 
+/**
+ * Dashboard Component - Main application interface
+ * 
+ * This is the primary component containing all ticket management functionality.
+ * Uses React Query for data fetching and caching, with local state for UI controls.
+ * 
+ * Props:
+ * - currentUser: Display name of logged-in user
+ * - onLogout: Callback to trigger logout
+ * 
+ * Main sections rendered:
+ * - Header bar with navigation
+ * - Left panel with ticket list
+ * - Right panel with ticket details
+ * - Settings modal
+ * - Analytics modal
+ * - Knowledge base modal
+ * - Templates modal
+ */
 function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: () => void }) {
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)

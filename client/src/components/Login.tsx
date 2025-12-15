@@ -1,17 +1,77 @@
+/**
+ * Login Component
+ * ================
+ * This component provides the login page for the AI Support Desk application.
+ * 
+ * FEATURES:
+ * 1. Animated splash screen with company branding
+ * 2. Traditional username/password login form
+ * 3. Google OAuth Single Sign-On (SSO) button
+ * 4. Glass-morphism design with particle effects
+ * 
+ * AUTHENTICATION FLOW:
+ * 
+ * Traditional Login:
+ * 1. User enters username and password
+ * 2. Form submits to /api/auth/login
+ * 3. On success, user data is stored in localStorage
+ * 4. onLogin callback notifies App component
+ * 
+ * Google SSO:
+ * 1. User clicks "Sign in with Google"
+ * 2. Opens /api/auth/google/login in new tab (required for OAuth)
+ * 3. User authenticates with Google
+ * 4. Callback page stores user data in localStorage
+ * 5. User is redirected to dashboard
+ * 
+ * WHY NEW TAB FOR GOOGLE?
+ * Google blocks OAuth in iframes for security. Since Replit shows
+ * the app in an iframe, Google login must open in a new tab.
+ * 
+ * DEFAULT CREDENTIALS:
+ * Username: admin
+ * Password: admin123
+ * 
+ * TROUBLESHOOTING:
+ * - "Connection error": Check if backend is running on port 8000
+ * - Google button not working: Check GOOGLE_CLIENT_ID is set
+ * - Login succeeds but dashboard doesn't load: Check localStorage
+ */
+
 import { useState, useEffect } from 'react'
 import { LogIn, Lock, User, Loader2 } from 'lucide-react'
 import companyLogo from '../assets/company-logo.png'
 import aiBgImage from '@assets/image_1765797199880.png'
 
+/**
+ * Props for the Login component
+ * @param onLogin - Callback function called when login succeeds
+ *                  Receives the user's display name as argument
+ */
 interface LoginProps {
   onLogin: (username: string) => void
 }
 
+/**
+ * AnimatedBackground Component
+ * ============================
+ * Creates the animated background effects for the login page:
+ * - Gradient base layer (dark blue/slate)
+ * - AI-themed background image with zoom animation
+ * - Floating particle effects (cyan glowing dots)
+ * - Scanning line effect for tech aesthetic
+ * - Radial glow in the center
+ * 
+ * All animations are CSS-based for smooth performance.
+ * The component is non-interactive (pointer-events: none).
+ */
 function AnimatedBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Base gradient layer - dark blue/slate tones */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"></div>
       
+      {/* Primary background image with slow zoom animation */}
       <div 
         className="absolute inset-0 animate-bg-zoom"
         style={{
@@ -22,6 +82,7 @@ function AnimatedBackground() {
         }}
       />
       
+      {/* Secondary background image with pan animation for depth */}
       <div 
         className="absolute inset-0 animate-bg-pan"
         style={{
@@ -33,9 +94,11 @@ function AnimatedBackground() {
         }}
       />
       
+      {/* Vignette overlays for depth and focus */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/80"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60"></div>
       
+      {/* Floating particles - small glowing dots that rise up */}
       {[...Array(15)].map((_, i) => (
         <div
           key={i}
@@ -50,6 +113,7 @@ function AnimatedBackground() {
         />
       ))}
       
+      {/* Central radial glow - golden/cyan gradient */}
       <div 
         className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full animate-pulse-glow"
         style={{
@@ -58,19 +122,43 @@ function AnimatedBackground() {
         }}
       />
       
+      {/* Scanline effect - horizontal line sweep */}
       <div className="absolute inset-0 animate-scanline opacity-10"></div>
     </div>
   )
 }
 
+/**
+ * Main Login Component
+ * ====================
+ * Renders either the splash screen or login form based on state.
+ * 
+ * STATE:
+ * - showSplash: Controls splash screen visibility (auto-hides after 3s)
+ * - username/password: Form input values
+ * - error: Error message to display (if any)
+ * - isLoading: Loading state during authentication
+ * - logoLoaded: Tracks if company logo has loaded (for fade-in effect)
+ */
 export default function Login({ onLogin }: LoginProps) {
+  // State for splash screen (shows for 3 seconds on initial load)
   const [showSplash, setShowSplash] = useState(true)
+  
+  // Form input state
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  
+  // Error and loading states
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Logo loading state for smooth fade-in
   const [logoLoaded, setLogoLoaded] = useState(false)
 
+  /**
+   * Hide splash screen after 3 seconds
+   * This creates the branded intro animation effect
+   */
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false)
@@ -78,12 +166,21 @@ export default function Login({ onLogin }: LoginProps) {
     return () => clearTimeout(timer)
   }, [])
 
+  /**
+   * Handle form submission for traditional login
+   * 
+   * 1. Prevents default form submission
+   * 2. Sends credentials to /api/auth/login
+   * 3. On success: stores user in localStorage, calls onLogin
+   * 4. On failure: displays error message
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
     try {
+      // Send login request to backend
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,24 +190,37 @@ export default function Login({ onLogin }: LoginProps) {
       const data = await response.json()
 
       if (response.ok) {
+        // Success: Store user data and notify parent component
         localStorage.setItem('auth_user', JSON.stringify(data.user))
         onLogin(data.user.name)
       } else {
+        // Failed: Show error message from server
         setError(data.detail || 'Invalid username or password')
       }
     } catch (err) {
+      // Network error
       setError('Connection error. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
+  /**
+   * SPLASH SCREEN
+   * =============
+   * Shows for the first 3 seconds with:
+   * - Company logo with glow effects
+   * - Orbiting border animations
+   * - App title and company name
+   * - Loading dots animation
+   */
   if (showSplash) {
     return (
       <div className="min-h-screen login-bg flex items-center justify-center relative overflow-hidden">
         <AnimatedBackground />
         
         <div className="text-center animate-fade-in relative z-10">
+          {/* Logo with glow and orbit effects */}
           <div className="relative mb-8">
             <div className="absolute inset-0 blur-3xl bg-cyan-500/30 rounded-full animate-pulse-glow scale-150"></div>
             <div className="absolute -inset-8 border border-cyan-400/20 rounded-full animate-orbit opacity-50" style={{ animationDuration: '10s' }}></div>
@@ -122,12 +232,16 @@ export default function Login({ onLogin }: LoginProps) {
               onLoad={() => setLogoLoaded(true)}
             />
           </div>
+          
+          {/* App title with text glow */}
           <h1 className="text-5xl font-bold text-white mb-3 animate-slide-up text-glow tracking-tight">
             AI Support Desk
           </h1>
           <p className="text-cyan-400 text-xl animate-slide-up-delay font-light">
             InfinityWork IT Solutions (Pty) Ltd
           </p>
+          
+          {/* Loading dots animation */}
           <div className="mt-10 flex justify-center">
             <div className="flex space-x-3">
               <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full animate-bounce shadow-lg shadow-cyan-400/50" style={{ animationDelay: '0ms' }}></div>
@@ -140,11 +254,23 @@ export default function Login({ onLogin }: LoginProps) {
     )
   }
 
+  /**
+   * LOGIN FORM
+   * ==========
+   * Main login interface with:
+   * - Company branding header
+   * - Username and password inputs with icons
+   * - Error message display
+   * - Submit button with loading state
+   * - Google SSO button (opens in new tab)
+   * - Default credentials hint
+   */
   return (
     <div className="min-h-screen login-bg flex items-center justify-center p-4 relative overflow-hidden">
       <AnimatedBackground />
       
       <div className="w-full max-w-md relative z-10">
+        {/* Header with logo and branding */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="relative inline-block">
             <div className="absolute inset-0 blur-2xl bg-cyan-500/20 rounded-full animate-pulse-glow"></div>
@@ -158,12 +284,15 @@ export default function Login({ onLogin }: LoginProps) {
           <p className="text-cyan-400 text-sm font-light">InfinityWork IT Solutions (Pty) Ltd</p>
         </div>
 
+        {/* Glass card containing the login form */}
         <div className="glass-card rounded-3xl p-8 glow-blue animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <h2 className="text-2xl font-semibold text-white text-center mb-8">
             Welcome Back
           </h2>
 
+          {/* Traditional Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Username Input */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Username
@@ -183,6 +312,7 @@ export default function Login({ onLogin }: LoginProps) {
               </div>
             </div>
 
+            {/* Password Input */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Password
@@ -202,12 +332,14 @@ export default function Login({ onLogin }: LoginProps) {
               </div>
             </div>
 
+            {/* Error Message Display */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm text-center backdrop-blur-sm">
                 {error}
               </div>
             )}
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -227,13 +359,21 @@ export default function Login({ onLogin }: LoginProps) {
             </button>
           </form>
 
+          {/* Google SSO Section */}
           <div className="mt-6 pt-6 border-t border-white/10">
             <div className="text-center text-gray-400 text-sm mb-4">Or sign in with your organization</div>
+            {/* 
+              IMPORTANT: Opens in new tab (_blank) because:
+              1. Google blocks OAuth in iframes for security
+              2. Replit shows the app in an iframe
+              3. Opening in new tab bypasses this restriction
+            */}
             <button
               type="button"
               onClick={() => window.open('/api/auth/google/login', '_blank')}
               className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
             >
+              {/* Google "G" logo */}
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -244,6 +384,7 @@ export default function Login({ onLogin }: LoginProps) {
             </button>
           </div>
 
+          {/* Default Credentials Hint */}
           <div className="mt-6 pt-4 border-t border-white/10">
             <p className="text-center text-gray-500 text-xs">
               Admin access: <span className="text-cyan-400/70">admin</span> / <span className="text-cyan-400/70">admin123</span>
@@ -251,6 +392,7 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
         </div>
 
+        {/* Footer Copyright */}
         <p className="mt-8 text-center text-gray-500 text-xs">
           &copy; {new Date().getFullYear()} InfinityWork IT Solutions (Pty) Ltd. All rights reserved.
         </p>
