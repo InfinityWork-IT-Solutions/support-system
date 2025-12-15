@@ -5,73 +5,52 @@
  * 
  * FEATURES:
  * 1. Animated splash screen with company branding
- * 2. Traditional username/password login form
- * 3. Google OAuth Single Sign-On (SSO) button
- * 4. Glass-morphism design with particle effects
+ * 2. Admin username/password login (original path)
+ * 3. Email/Password login for registered users
+ * 4. Registration with email, password, and position
+ * 5. Google OAuth Single Sign-On (SSO) button
+ * 6. Glass-morphism design with particle effects
  * 
- * AUTHENTICATION FLOW:
+ * AUTHENTICATION FLOWS:
  * 
- * Traditional Login:
+ * Admin Login (username/password):
  * 1. User enters username and password
  * 2. Form submits to /api/auth/login
  * 3. On success, user data is stored in localStorage
- * 4. onLogin callback notifies App component
+ * 
+ * Email Login:
+ * 1. User enters email and password
+ * 2. Form submits to /api/auth/email-login
+ * 3. On success, user data is stored in localStorage
+ * 
+ * Registration:
+ * 1. User fills form (name, email, password, position)
+ * 2. Form submits to /api/auth/register
+ * 3. On success, user is logged in automatically
  * 
  * Google SSO:
  * 1. User clicks "Sign in with Google"
- * 2. Opens /api/auth/google/login in new tab (required for OAuth)
- * 3. User authenticates with Google
- * 4. Callback page stores user data in localStorage
- * 5. User is redirected to dashboard
+ * 2. Opens /api/auth/google/login in new tab
  * 
- * WHY NEW TAB FOR GOOGLE?
- * Google blocks OAuth in iframes for security. Since Replit shows
- * the app in an iframe, Google login must open in a new tab.
- * 
- * DEFAULT CREDENTIALS:
+ * DEFAULT ADMIN CREDENTIALS:
  * Username: admin
  * Password: admin123
- * 
- * TROUBLESHOOTING:
- * - "Connection error": Check if backend is running on port 8000
- * - Google button not working: Check GOOGLE_CLIENT_ID is set
- * - Login succeeds but dashboard doesn't load: Check localStorage
  */
 
 import { useState, useEffect } from 'react'
-import { LogIn, Lock, User, Loader2 } from 'lucide-react'
+import { LogIn, Lock, User, Loader2, Mail, UserPlus, Briefcase, Shield } from 'lucide-react'
 import companyLogo from '../assets/company-logo.png'
 import aiBgImage from '@assets/image_1765797199880.png'
 
-/**
- * Props for the Login component
- * @param onLogin - Callback function called when login succeeds
- *                  Receives the user's display name as argument
- */
 interface LoginProps {
   onLogin: (username: string) => void
 }
 
-/**
- * AnimatedBackground Component
- * ============================
- * Creates the animated background effects for the login page:
- * - Gradient base layer (dark blue/slate)
- * - AI-themed background image with zoom animation
- * - Floating particle effects (cyan glowing dots)
- * - Scanning line effect for tech aesthetic
- * - Radial glow in the center
- * 
- * All animations are CSS-based for smooth performance.
- * The component is non-interactive (pointer-events: none).
- */
 function AnimatedBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Base gradient layer - dark blue/slate tones */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"></div>
       
-      {/* Primary background image with slow zoom animation */}
       <div 
         className="absolute inset-0 animate-bg-zoom"
         style={{
@@ -82,7 +61,6 @@ function AnimatedBackground() {
         }}
       />
       
-      {/* Secondary background image with pan animation for depth */}
       <div 
         className="absolute inset-0 animate-bg-pan"
         style={{
@@ -94,11 +72,9 @@ function AnimatedBackground() {
         }}
       />
       
-      {/* Vignette overlays for depth and focus */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/80"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60"></div>
       
-      {/* Floating particles - small glowing dots that rise up */}
       {[...Array(15)].map((_, i) => (
         <div
           key={i}
@@ -113,7 +89,6 @@ function AnimatedBackground() {
         />
       ))}
       
-      {/* Central radial glow - golden/cyan gradient */}
       <div 
         className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full animate-pulse-glow"
         style={{
@@ -122,43 +97,38 @@ function AnimatedBackground() {
         }}
       />
       
-      {/* Scanline effect - horizontal line sweep */}
       <div className="absolute inset-0 animate-scanline opacity-10"></div>
     </div>
   )
 }
 
-/**
- * Main Login Component
- * ====================
- * Renders either the splash screen or login form based on state.
- * 
- * STATE:
- * - showSplash: Controls splash screen visibility (auto-hides after 3s)
- * - username/password: Form input values
- * - error: Error message to display (if any)
- * - isLoading: Loading state during authentication
- * - logoLoaded: Tracks if company logo has loaded (for fade-in effect)
- */
 export default function Login({ onLogin }: LoginProps) {
-  // State for splash screen (shows for 3 seconds on initial load)
   const [showSplash, setShowSplash] = useState(true)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [loginType, setLoginType] = useState<'email' | 'admin'>('email')
   
-  // Form input state
+  // Admin login form state (username/password)
   const [username, setUsername] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  
+  // Email login form state
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  
+  // Registration form state
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [registerEmail, setRegisterEmail] = useState('')
+  const [registerPassword, setRegisterPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [position, setPosition] = useState('')
   
   // Error and loading states
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  
-  // Logo loading state for smooth fade-in
   const [logoLoaded, setLogoLoaded] = useState(false)
 
-  /**
-   * Hide splash screen after 3 seconds
-   * This creates the branded intro animation effect
-   */
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false)
@@ -166,61 +136,122 @@ export default function Login({ onLogin }: LoginProps) {
     return () => clearTimeout(timer)
   }, [])
 
-  /**
-   * Handle form submission for traditional login
-   * 
-   * 1. Prevents default form submission
-   * 2. Sends credentials to /api/auth/login
-   * 3. On success: stores user in localStorage, calls onLogin
-   * 4. On failure: displays error message
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Admin login (username/password -> /api/auth/login)
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setIsLoading(true)
 
     try {
-      // Send login request to backend
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password: adminPassword }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // Success: Store user data and notify parent component
         localStorage.setItem('auth_user', JSON.stringify(data.user))
         onLogin(data.user.name)
       } else {
-        // Failed: Show error message from server
         setError(data.detail || 'Invalid username or password')
       }
     } catch (err) {
-      // Network error
       setError('Connection error. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  /**
-   * SPLASH SCREEN
-   * =============
-   * Shows for the first 3 seconds with:
-   * - Company logo with glow effects
-   * - Orbiting border animations
-   * - App title and company name
-   * - Loading dots animation
-   */
+  // Email login (/api/auth/email-login)
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/auth/email-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        localStorage.setItem('auth_user', JSON.stringify(data.user))
+        onLogin(data.user.name)
+      } else {
+        setError(data.detail || 'Invalid email or password')
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Registration (/api/auth/register)
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (registerPassword !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    if (registerPassword.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: registerEmail,
+          password: registerPassword,
+          first_name: firstName,
+          last_name: lastName,
+          position: position || undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        localStorage.setItem('auth_user', JSON.stringify(data.user))
+        onLogin(data.user.name)
+      } else {
+        setError(data.detail || 'Registration failed')
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const switchMode = (mode: 'login' | 'register') => {
+    setAuthMode(mode)
+    setError('')
+    setSuccess('')
+  }
+
   if (showSplash) {
     return (
       <div className="min-h-screen login-bg flex items-center justify-center relative overflow-hidden">
         <AnimatedBackground />
         
         <div className="text-center animate-fade-in relative z-10">
-          {/* Logo with glow and orbit effects */}
           <div className="relative mb-8">
             <div className="absolute inset-0 blur-3xl bg-cyan-500/30 rounded-full animate-pulse-glow scale-150"></div>
             <div className="absolute -inset-8 border border-cyan-400/20 rounded-full animate-orbit opacity-50" style={{ animationDuration: '10s' }}></div>
@@ -233,7 +264,6 @@ export default function Login({ onLogin }: LoginProps) {
             />
           </div>
           
-          {/* App title with text glow */}
           <h1 className="text-5xl font-bold text-white mb-3 animate-slide-up text-glow tracking-tight">
             AI Support Desk
           </h1>
@@ -241,7 +271,6 @@ export default function Login({ onLogin }: LoginProps) {
             InfinityWork IT Solutions (Pty) Ltd
           </p>
           
-          {/* Loading dots animation */}
           <div className="mt-10 flex justify-center">
             <div className="flex space-x-3">
               <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full animate-bounce shadow-lg shadow-cyan-400/50" style={{ animationDelay: '0ms' }}></div>
@@ -254,23 +283,11 @@ export default function Login({ onLogin }: LoginProps) {
     )
   }
 
-  /**
-   * LOGIN FORM
-   * ==========
-   * Main login interface with:
-   * - Company branding header
-   * - Username and password inputs with icons
-   * - Error message display
-   * - Submit button with loading state
-   * - Google SSO button (opens in new tab)
-   * - Default credentials hint
-   */
   return (
     <div className="min-h-screen login-bg flex items-center justify-center p-4 relative overflow-hidden">
       <AnimatedBackground />
       
       <div className="w-full max-w-md relative z-10">
-        {/* Header with logo and branding */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="relative inline-block">
             <div className="absolute inset-0 blur-2xl bg-cyan-500/20 rounded-full animate-pulse-glow"></div>
@@ -284,96 +301,364 @@ export default function Login({ onLogin }: LoginProps) {
           <p className="text-cyan-400 text-sm font-light">InfinityWork IT Solutions (Pty) Ltd</p>
         </div>
 
-        {/* Glass card containing the login form */}
         <div className="glass-card rounded-3xl p-8 glow-blue animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <h2 className="text-2xl font-semibold text-white text-center mb-8">
-            Welcome Back
-          </h2>
-
-          {/* Traditional Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Username
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-cyan-400 group-focus-within:text-cyan-300 transition-colors" />
-                </div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
-                  placeholder="Enter your username"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-cyan-400 group-focus-within:text-cyan-300 transition-colors" />
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Error Message Display */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm text-center backdrop-blur-sm">
-                {error}
-              </div>
-            )}
-
-            {/* Submit Button */}
+          {/* Auth Mode Toggle Tabs */}
+          <div className="flex mb-6 bg-white/5 rounded-xl p-1">
             <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 hover:from-cyan-400 hover:via-cyan-300 hover:to-blue-400 text-white font-semibold rounded-xl btn-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              type="button"
+              onClick={() => switchMode('login')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all duration-300 ${
+                authMode === 'login'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white'
+              }`}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  <span>Sign In</span>
-                </>
-              )}
+              <LogIn className="w-4 h-4" />
+              Sign In
             </button>
-          </form>
+            <button
+              type="button"
+              onClick={() => switchMode('register')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all duration-300 ${
+                authMode === 'register'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <UserPlus className="w-4 h-4" />
+              Register
+            </button>
+          </div>
+
+          {/* Login Forms */}
+          {authMode === 'login' && (
+            <>
+              {/* Login Type Toggle */}
+              <div className="flex mb-5 bg-white/5 rounded-lg p-0.5">
+                <button
+                  type="button"
+                  onClick={() => { setLoginType('email'); setError(''); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    loginType === 'email'
+                      ? 'bg-white/10 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginType('admin'); setError(''); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    loginType === 'admin'
+                      ? 'bg-white/10 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Admin
+                </button>
+              </div>
+
+              {/* Email Login Form */}
+              {loginType === 'email' && (
+                <form onSubmit={handleEmailLogin} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Email Address
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Mail className="h-5 w-5 text-cyan-400 group-focus-within:text-cyan-300 transition-colors" />
+                      </div>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                        placeholder="Enter your email"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Password
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-cyan-400 group-focus-within:text-cyan-300 transition-colors" />
+                      </div>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                        placeholder="Enter your password"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm text-center backdrop-blur-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 hover:from-cyan-400 hover:via-cyan-300 hover:to-blue-400 text-white font-semibold rounded-xl btn-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Signing in...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="w-5 h-5" />
+                        <span>Sign In</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {/* Admin Login Form */}
+              {loginType === 'admin' && (
+                <form onSubmit={handleAdminLogin} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Username
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-cyan-400 group-focus-within:text-cyan-300 transition-colors" />
+                      </div>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                        placeholder="Enter admin username"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Password
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-cyan-400 group-focus-within:text-cyan-300 transition-colors" />
+                      </div>
+                      <input
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        className="block w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                        placeholder="Enter password"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm text-center backdrop-blur-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 hover:from-cyan-400 hover:via-cyan-300 hover:to-blue-400 text-white font-semibold rounded-xl btn-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Signing in...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="w-5 h-5" />
+                        <span>Admin Sign In</span>
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-center text-gray-500 text-xs mt-2">
+                    Default: <span className="text-cyan-400/70">admin</span> / <span className="text-cyan-400/70">admin123</span>
+                  </p>
+                </form>
+              )}
+            </>
+          )}
+
+          {/* Registration Form */}
+          {authMode === 'register' && (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    First Name
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-cyan-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300 text-sm"
+                      placeholder="First name"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Last Name
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-cyan-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300 text-sm"
+                      placeholder="Last name"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <input
+                    type="email"
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Position / Role (Optional)
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Briefcase className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={position}
+                    onChange={(e) => setPosition(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                    placeholder="e.g. IT Manager, Support Lead"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Password
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <input
+                    type="password"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                    placeholder="Min. 8 characters"
+                    required
+                    minLength={8}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                    placeholder="Confirm your password"
+                    required
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-300 text-sm text-center backdrop-blur-sm">
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-green-300 text-sm text-center backdrop-blur-sm">
+                  {success}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 hover:from-cyan-400 hover:via-cyan-300 hover:to-blue-400 text-white font-semibold rounded-xl btn-glow transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-5 h-5" />
+                    <span>Create Account</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
           {/* Google SSO Section */}
           <div className="mt-6 pt-6 border-t border-white/10">
-            <div className="text-center text-gray-400 text-sm mb-4">Or sign in with your organization</div>
-            {/* 
-              IMPORTANT: Opens in new tab (_blank) because:
-              1. Google blocks OAuth in iframes for security
-              2. Replit shows the app in an iframe
-              3. Opening in new tab bypasses this restriction
-            */}
+            <div className="text-center text-gray-400 text-sm mb-4">Or continue with</div>
             <button
               type="button"
               onClick={() => window.open('/api/auth/google/login', '_blank')}
               className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              {/* Google "G" logo */}
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -383,16 +668,8 @@ export default function Login({ onLogin }: LoginProps) {
               <span>Sign in with Google</span>
             </button>
           </div>
-
-          {/* Default Credentials Hint */}
-          <div className="mt-6 pt-4 border-t border-white/10">
-            <p className="text-center text-gray-500 text-xs">
-              Admin access: <span className="text-cyan-400/70">admin</span> / <span className="text-cyan-400/70">admin123</span>
-            </p>
-          </div>
         </div>
 
-        {/* Footer Copyright */}
         <p className="mt-8 text-center text-gray-500 text-xs">
           &copy; {new Date().getFullYear()} InfinityWork IT Solutions (Pty) Ltd. All rights reserved.
         </p>

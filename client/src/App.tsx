@@ -199,6 +199,16 @@ function App() {
 function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: () => void }) {
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  
+  // Get user position from localStorage
+  const userPosition = (() => {
+    try {
+      const user = localStorage.getItem('auth_user')
+      return user ? JSON.parse(user).position : null
+    } catch {
+      return null
+    }
+  })()
   const [showSettings, setShowSettings] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [filters, setFilters] = useState({
@@ -2572,7 +2582,12 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                   <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-white">{currentUser}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-white">{currentUser}</span>
+                    {userPosition && (
+                      <span className="text-xs text-white/60">{userPosition}</span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={onLogout}
