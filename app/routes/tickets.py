@@ -6,10 +6,11 @@ from sqlalchemy import desc, or_, func
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.models import Ticket, TicketMessage, ApprovalStatus
+from app.models import Ticket, TicketMessage, ApprovalStatus, Settings
 from app.services.imap_service import fetch_unread_emails
 from app.services.ai_service import process_ticket
 from app.services.approval_service import approve_ticket, reject_ticket, send_approved_response
+from app.services.slack_service import notify_new_ticket, notify_urgent_ticket, notify_ticket_processed
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -207,6 +208,10 @@ def fetch_emails(db: Session = Depends(get_db)):
             )
             db.add(message)
             created_count += 1
+            
+            notify_on_new = db.query(Settings).filter(Settings.key == "slack_notify_on_new").first()
+            if notify_on_new and notify_on_new.value == "true":
+                notify_new_ticket(db, ticket)
     
     db.commit()
     return {"fetched": len(emails), "created": created_count}
@@ -243,6 +248,13 @@ def process_single_ticket(ticket_id: int, db: Session = Depends(get_db)):
         ticket.draft_response = result["draft_response"]
         ticket.ai_processed = True
         db.commit()
+        
+        notify_on_urgent = db.query(Settings).filter(Settings.key == "slack_notify_on_urgent").first()
+        if ticket.urgency == "High" and (not notify_on_urgent or notify_on_urgent.value != "false"):
+            notify_urgent_ticket(db, ticket)
+        else:
+            notify_ticket_processed(db, ticket)
+        
         return {"status": "processed", "result": result}
     else:
         raise HTTPException(status_code=500, detail="AI processing failed")

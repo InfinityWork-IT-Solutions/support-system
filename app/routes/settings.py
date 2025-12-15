@@ -14,7 +14,8 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 SETTING_KEYS = [
     "imap_host", "imap_port", "imap_username", "imap_password",
     "smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_from_email",
-    "openai_api_key", "scheduler_enabled", "scheduler_interval_minutes"
+    "openai_api_key", "scheduler_enabled", "scheduler_interval_minutes",
+    "slack_webhook_url", "slack_notify_on_new", "slack_notify_on_urgent", "slack_notify_on_process"
 ]
 
 
@@ -148,3 +149,43 @@ def stop_scheduler_endpoint(db: Session = Depends(get_db)):
     set_setting(db, "scheduler_enabled", "false")
     stop_scheduler()
     return {"status": "stopped"}
+
+
+class SlackSettings(BaseModel):
+    webhook_url: str
+    notify_on_new: bool = True
+    notify_on_urgent: bool = True
+    notify_on_process: bool = False
+
+
+@router.get("/slack")
+def get_slack_settings(db: Session = Depends(get_db)):
+    webhook_url = get_setting(db, "slack_webhook_url") or ""
+    return {
+        "webhook_url": "********" if webhook_url else "",
+        "notify_on_new": get_setting(db, "slack_notify_on_new") == "true",
+        "notify_on_urgent": get_setting(db, "slack_notify_on_urgent") != "false",
+        "notify_on_process": get_setting(db, "slack_notify_on_process") == "true",
+        "configured": bool(webhook_url)
+    }
+
+
+@router.post("/slack")
+def update_slack_settings(request: SlackSettings, db: Session = Depends(get_db)):
+    if request.webhook_url and request.webhook_url != "********":
+        set_setting(db, "slack_webhook_url", request.webhook_url)
+    set_setting(db, "slack_notify_on_new", "true" if request.notify_on_new else "false")
+    set_setting(db, "slack_notify_on_urgent", "true" if request.notify_on_urgent else "false")
+    set_setting(db, "slack_notify_on_process", "true" if request.notify_on_process else "false")
+    return {"status": "updated"}
+
+
+@router.post("/slack/test")
+def test_slack(db: Session = Depends(get_db)):
+    from app.services.slack_service import test_slack_webhook, get_slack_webhook_url
+    
+    webhook_url = get_slack_webhook_url(db)
+    if not webhook_url:
+        return {"success": False, "message": "Slack webhook URL not configured"}
+    
+    return test_slack_webhook(webhook_url)

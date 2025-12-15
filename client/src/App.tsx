@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, Template, SchedulerStatus } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, Template, SchedulerStatus, SlackSettings } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -19,12 +19,12 @@ import {
   CheckSquare,
   BarChart3,
   FileText,
-  Plus,
   Trash2,
   Edit2,
   Clock,
   Play,
-  Pause
+  Pause,
+  Hash
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
@@ -46,8 +46,17 @@ function App() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [templateForm, setTemplateForm] = useState<{ name: string; category: string; content: string }>({ name: '', category: '', content: '' })
   const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null)
-  const [schedulerEnabled, setSchedulerEnabled] = useState(false)
-  const [schedulerInterval, setSchedulerInterval] = useState(5)
+  const [slackForm, setSlackForm] = useState<{
+    webhook_url: string;
+    notify_on_new: boolean;
+    notify_on_urgent: boolean;
+    notify_on_process: boolean;
+  }>({
+    webhook_url: '',
+    notify_on_new: true,
+    notify_on_urgent: true,
+    notify_on_process: false
+  })
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -84,11 +93,28 @@ function App() {
     queryFn: () => api.getTemplates(),
   })
 
-  const { data: schedulerStatus, refetch: refetchScheduler } = useQuery({
+  const { data: schedulerStatus } = useQuery({
     queryKey: ['scheduler'],
     queryFn: api.getScheduler,
     enabled: showSettings,
   })
+
+  const { data: slackSettings } = useQuery({
+    queryKey: ['slackSettings'],
+    queryFn: api.getSlackSettings,
+    enabled: showSettings,
+  })
+
+  useEffect(() => {
+    if (slackSettings) {
+      setSlackForm({
+        webhook_url: '',
+        notify_on_new: slackSettings.notify_on_new,
+        notify_on_urgent: slackSettings.notify_on_urgent,
+        notify_on_process: slackSettings.notify_on_process
+      })
+    }
+  }, [slackSettings])
 
   const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899']
 
@@ -223,6 +249,19 @@ function App() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduler'] })
     },
+  })
+
+  const updateSlackMutation = useMutation({
+    mutationFn: api.updateSlackSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slackSettings'] })
+      setSlackForm({ webhook_url: '', notify_on_new: true, notify_on_urgent: true, notify_on_process: false })
+    },
+  })
+
+  const testSlackMutation = useMutation({
+    mutationFn: api.testSlack,
+    onSuccess: (data) => setTestResult({ type: 'Slack', ...data }),
   })
 
   const getUrgencyColor = (urgency: string | null) => {
@@ -805,6 +844,94 @@ function App() {
             <div className="text-xs text-gray-500">
               Current status: {schedulerStatus?.enabled ? 'Enabled' : 'Disabled'} | 
               Interval: Every {schedulerStatus?.interval_minutes || 5} minutes
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Hash className="w-5 h-5 text-purple-600" />
+                <h2 className="text-lg font-semibold">Slack Notifications</h2>
+              </div>
+              {slackSettings?.configured && (
+                <span className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  Connected
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Receive instant notifications in Slack when new tickets arrive, urgent issues are detected, or tickets are processed by AI.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Webhook URL</label>
+                <input
+                  type="password"
+                  placeholder={slackSettings?.configured ? '********' : 'https://hooks.slack.com/services/...'}
+                  value={slackForm.webhook_url}
+                  onChange={(e) => setSlackForm({ ...slackForm, webhook_url: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Create a webhook in your Slack workspace and paste the URL here.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Notification Triggers</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={slackForm.notify_on_new}
+                      onChange={(e) => setSlackForm({ ...slackForm, notify_on_new: e.target.checked })}
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">Notify on new tickets</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={slackForm.notify_on_urgent}
+                      onChange={(e) => setSlackForm({ ...slackForm, notify_on_urgent: e.target.checked })}
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">Notify on urgent tickets</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={slackForm.notify_on_process}
+                      onChange={(e) => setSlackForm({ ...slackForm, notify_on_process: e.target.checked })}
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">Notify when AI processes tickets</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={() => updateSlackMutation.mutate({
+                  webhook_url: slackForm.webhook_url,
+                  notify_on_new: slackForm.notify_on_new,
+                  notify_on_urgent: slackForm.notify_on_urgent,
+                  notify_on_process: slackForm.notify_on_process
+                })}
+                disabled={updateSlackMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {updateSlackMutation.isPending ? 'Saving...' : 'Save Slack Settings'}
+              </button>
+              <button
+                onClick={() => testSlackMutation.mutate()}
+                disabled={testSlackMutation.isPending || !slackSettings?.configured}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <TestTube2 className="w-4 h-4" />
+                {testSlackMutation.isPending ? 'Testing...' : 'Test Slack'}
+              </button>
             </div>
           </div>
 
