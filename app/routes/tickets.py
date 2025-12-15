@@ -1,6 +1,9 @@
+import csv
+import io
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, or_, func
 from pydantic import BaseModel
@@ -111,6 +114,75 @@ def get_analytics(db: Session = Depends(get_db)):
         "rejection_rate": rejection_rate,
         "send_rate": send_rate
     }
+
+
+@router.get("/export")
+def export_tickets(
+    status: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    urgency: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Ticket)
+    
+    if status:
+        query = query.filter(Ticket.approval_status == status)
+    if category:
+        query = query.filter(Ticket.category == category)
+    if urgency:
+        query = query.filter(Ticket.urgency == urgency)
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Ticket.sender_email.ilike(search_term),
+                Ticket.subject.ilike(search_term),
+                Ticket.summary.ilike(search_term)
+            )
+        )
+    
+    tickets = query.order_by(desc(Ticket.received_at)).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow([
+        "ID", "Sender Email", "Subject", "Received At", "Category", "Urgency",
+        "Summary", "Fix Steps", "Draft Response", "Status", "AI Processed", 
+        "Escalation Required", "Approved By", "Approved At", "Sent At", 
+        "Created At", "Updated At"
+    ])
+    
+    for ticket in tickets:
+        writer.writerow([
+            ticket.id,
+            ticket.sender_email,
+            ticket.subject,
+            ticket.received_at.strftime("%Y-%m-%d %H:%M:%S") if ticket.received_at else "",
+            ticket.category or "",
+            ticket.urgency or "",
+            ticket.summary or "",
+            ticket.fix_steps or "",
+            ticket.draft_response or "",
+            ticket.approval_status,
+            "Yes" if ticket.ai_processed else "No",
+            "Yes" if ticket.escalation_required else "No",
+            ticket.approved_by or "",
+            ticket.approved_at.strftime("%Y-%m-%d %H:%M:%S") if ticket.approved_at else "",
+            ticket.sent_at.strftime("%Y-%m-%d %H:%M:%S") if ticket.sent_at else "",
+            ticket.created_at.strftime("%Y-%m-%d %H:%M:%S") if ticket.created_at else "",
+            ticket.updated_at.strftime("%Y-%m-%d %H:%M:%S") if ticket.updated_at else ""
+        ])
+    
+    output.seek(0)
+    filename = f"tickets_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @router.get("/", response_model=List[TicketResponse])

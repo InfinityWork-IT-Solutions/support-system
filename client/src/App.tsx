@@ -26,7 +26,8 @@ import {
   Pause,
   Hash,
   BookOpen,
-  Lightbulb
+  Lightbulb,
+  Download
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
@@ -1242,6 +1243,14 @@ function App() {
               >
                 <BookOpen className="w-5 h-5" />
               </button>
+              <a
+                href={api.exportTickets(filters)}
+                download
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="Export to CSV"
+              >
+                <Download className="w-5 h-5" />
+              </a>
               <button
                 onClick={() => setShowSettings(true)}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"

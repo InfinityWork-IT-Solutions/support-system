@@ -48,6 +48,7 @@ Preferred communication style: Simple, everyday language.
 - **TicketMessage**: Individual messages in conversation threads
 - **Settings**: Key-value store for runtime configuration (email credentials, API keys, scheduler settings)
 - **Template**: Reusable response templates with name, category, and content
+- **KnowledgeArticle**: Help guides and solution articles with title, category, keywords, and content for suggested solutions
 
 ### Approval Workflow
 Critical design decision: No automated sending. All AI-generated responses require explicit human approval through the dashboard before being sent to customers.
