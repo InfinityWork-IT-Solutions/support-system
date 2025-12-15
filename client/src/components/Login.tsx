@@ -118,7 +118,7 @@ export default function Login({ onLogin }: LoginProps) {
             <img 
               src={companyLogo} 
               alt="InfinityWork IT Solutions" 
-              className={`w-64 h-64 object-contain relative z-10 transition-all duration-700 ${logoLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+              className={`w-80 h-80 object-contain relative z-10 transition-all duration-700 ${logoLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
               onLoad={() => setLogoLoaded(true)}
             />
           </div>
@@ -151,7 +151,7 @@ export default function Login({ onLogin }: LoginProps) {
             <img 
               src={companyLogo} 
               alt="InfinityWork IT Solutions" 
-              className="w-28 h-28 object-contain mx-auto mb-4 relative z-10 drop-shadow-2xl"
+              className="w-36 h-36 object-contain mx-auto mb-4 relative z-10 drop-shadow-2xl"
             />
           </div>
           <h1 className="text-4xl font-bold text-white mb-2 text-glow tracking-tight">AI Support Desk</h1>
