@@ -114,8 +114,7 @@ async def google_login(request: Request):
         "scope": "openid email profile",
         "state": state,
         "access_type": "offline",
-        "prompt": "select_account",
-        "hd": "*"
+        "prompt": "select_account"
     }
     
     google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
