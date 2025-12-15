@@ -29,6 +29,14 @@ Key capabilities:
 
 ## Recent Changes
 
+### Dual Authentication System (December 2025)
+- **Email/Password Registration**: Users can create accounts with email, password, first name, last name, and optional position/role
+- **Email/Password Login**: Registered users can log in with their email and password
+- **Admin Login**: Preserved original username/password login for admin access (admin/admin123)
+- **Google SSO**: Kept Google OAuth Single Sign-On alongside new auth methods
+- **User Position Display**: Position/role now shown in dashboard header below user name
+- **Login UI**: Tabbed interface with Sign In/Register toggle, plus Email/Admin sub-toggle for login
+
 ### UI Enhancements (December 2025)
 - **Settings Page**: Redesigned with sidebar navigation and 4 grouped sections (Email Infrastructure, Automation, Notifications, Operations)
 - **Templates Section**: Enhanced with enterprise styling matching Knowledge Base design (violet/purple gradient theme)
