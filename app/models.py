@@ -147,3 +147,23 @@ class SatisfactionSurvey(Base):
     completed_at = Column(DateTime, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SavedView(Base):
+    __tablename__ = "saved_views"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    
+    status = Column(String(50), nullable=True)
+    category = Column(String(50), nullable=True)
+    urgency = Column(String(50), nullable=True)
+    search = Column(String(255), nullable=True)
+    sla_breached = Column(Boolean, nullable=True)
+    assigned_to = Column(Integer, nullable=True)
+    
+    is_default = Column(Boolean, default=False)
+    sort_order = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

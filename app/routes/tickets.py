@@ -306,6 +306,8 @@ def list_tickets(
     category: Optional[str] = Query(None),
     urgency: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    sla_breached: Optional[bool] = Query(None),
+    assigned_to: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     query = db.query(Ticket)
@@ -325,6 +327,17 @@ def list_tickets(
                 Ticket.summary.ilike(search_term)
             )
         )
+    if sla_breached is not None:
+        query = query.filter(Ticket.sla_breached == sla_breached)
+    if assigned_to is not None:
+        if assigned_to == "unassigned":
+            query = query.filter(Ticket.assigned_to.is_(None))
+        else:
+            try:
+                member_id = int(assigned_to)
+                query = query.filter(Ticket.assigned_to == member_id)
+            except ValueError:
+                pass
     
     tickets = query.order_by(desc(Ticket.received_at)).all()
     return tickets

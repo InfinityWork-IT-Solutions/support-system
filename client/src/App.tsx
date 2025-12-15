@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings, TeamMember, SlaSummary, SlaSettings } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings, TeamMember, SlaSummary, SlaSettings, SavedView, QuickFilter } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -34,7 +34,11 @@ import {
   UserPlus,
   AlertTriangle,
   Timer,
-  Target
+  Target,
+  Bookmark,
+  Plus,
+  X,
+  Filter
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 
@@ -48,6 +52,8 @@ function App() {
     category: '',
     urgency: '',
     search: '',
+    sla_breached: undefined as boolean | undefined,
+    assigned_to: '',
   })
   const [editedDraft, setEditedDraft] = useState('')
   const [settingsForm, setSettingsForm] = useState<Partial<AppSettings>>({})
@@ -107,6 +113,13 @@ function App() {
     urgent_only: true,
     recipients: 'all'
   })
+  const [activeQuickFilter, setActiveQuickFilter] = useState<string>('all')
+  const [activeSavedView, setActiveSavedView] = useState<number | null>(null)
+  const [showSaveViewModal, setShowSaveViewModal] = useState(false)
+  const [savedViewForm, setSavedViewForm] = useState<{
+    name: string;
+    is_default: boolean;
+  }>({ name: '', is_default: false })
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -235,6 +248,16 @@ function App() {
     queryKey: ['slaSettings'],
     queryFn: api.getSlaSettings,
     enabled: showSettings,
+  })
+
+  const { data: savedViews = [] } = useQuery({
+    queryKey: ['savedViews'],
+    queryFn: api.getSavedViews,
+  })
+
+  const { data: quickFilters = [] } = useQuery({
+    queryKey: ['quickFilters'],
+    queryFn: api.getQuickFilters,
   })
 
   useEffect(() => {
@@ -511,6 +534,61 @@ function App() {
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
     },
   })
+
+  const createSavedViewMutation = useMutation({
+    mutationFn: api.createSavedView,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savedViews'] })
+      setShowSaveViewModal(false)
+      setSavedViewForm({ name: '', is_default: false })
+    },
+  })
+
+  const deleteSavedViewMutation = useMutation({
+    mutationFn: api.deleteSavedView,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savedViews'] })
+      setActiveSavedView(null)
+    },
+  })
+
+  const applyQuickFilter = (filter: QuickFilter) => {
+    setActiveQuickFilter(filter.id)
+    setActiveSavedView(null)
+    setFilters({
+      status: filter.filters.status || '',
+      category: filter.filters.category || '',
+      urgency: filter.filters.urgency || '',
+      search: '',
+      sla_breached: filter.filters.sla_breached,
+      assigned_to: filter.filters.assigned_to === null ? 'unassigned' : '',
+    })
+  }
+
+  const applySavedView = (view: SavedView) => {
+    setActiveSavedView(view.id)
+    setActiveQuickFilter('')
+    setFilters({
+      status: view.status || '',
+      category: view.category || '',
+      urgency: view.urgency || '',
+      search: view.search || '',
+      sla_breached: view.sla_breached ?? undefined,
+      assigned_to: view.assigned_to === null ? 'unassigned' : view.assigned_to?.toString() || '',
+    })
+  }
+
+  const handleSaveView = () => {
+    if (!savedViewForm.name.trim()) return
+    createSavedViewMutation.mutate({
+      name: savedViewForm.name,
+      status: filters.status || null,
+      category: filters.category || null,
+      urgency: filters.urgency || null,
+      search: filters.search || null,
+      is_default: savedViewForm.is_default,
+    })
+  }
 
   useEffect(() => {
     if (slaSettings) {
@@ -2023,7 +2101,60 @@ function App() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
+        <div className="bg-white rounded-lg shadow-sm mb-4 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Quick Filters:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {quickFilters.map((qf) => (
+                <button
+                  key={qf.id}
+                  onClick={() => applyQuickFilter(qf)}
+                  className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                    activeQuickFilter === qf.id
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {qf.name}
+                </button>
+              ))}
+            </div>
+            <div className="border-l border-gray-300 h-6 mx-2" />
+            <Bookmark className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Saved:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {savedViews.map((sv) => (
+                <div key={sv.id} className="flex items-center gap-1">
+                  <button
+                    onClick={() => applySavedView(sv)}
+                    className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                      activeSavedView === sv.id
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    }`}
+                  >
+                    {sv.name}
+                  </button>
+                  <button
+                    onClick={() => deleteSavedViewMutation.mutate(sv.id)}
+                    className="p-0.5 text-gray-400 hover:text-red-500"
+                    title="Delete view"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setShowSaveViewModal(true)}
+                className="px-2 py-1 text-sm rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 flex items-center gap-1"
+                title="Save current filters as view"
+              >
+                <Plus className="w-3 h-3" />
+                Save View
+              </button>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -2070,6 +2201,63 @@ function App() {
             </select>
           </div>
         </div>
+
+        {showSaveViewModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
+              <h3 className="text-lg font-semibold mb-4">Save Current Filters as View</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">View Name</label>
+                  <input
+                    type="text"
+                    value={savedViewForm.name}
+                    onChange={(e) => setSavedViewForm({ ...savedViewForm, name: e.target.value })}
+                    placeholder="e.g., High Priority Technical"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="text-sm text-gray-500">
+                  <p className="font-medium mb-1">Current Filters:</p>
+                  <ul className="list-disc list-inside">
+                    {filters.status && <li>Status: {filters.status}</li>}
+                    {filters.category && <li>Category: {filters.category}</li>}
+                    {filters.urgency && <li>Urgency: {filters.urgency}</li>}
+                    {filters.search && <li>Search: {filters.search}</li>}
+                    {!filters.status && !filters.category && !filters.urgency && !filters.search && <li>No filters applied</li>}
+                  </ul>
+                </div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={savedViewForm.is_default}
+                    onChange={(e) => setSavedViewForm({ ...savedViewForm, is_default: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700">Set as default view</span>
+                </label>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  onClick={() => {
+                    setShowSaveViewModal(false)
+                    setSavedViewForm({ name: '', is_default: false })
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveView}
+                  disabled={!savedViewForm.name.trim() || createSavedViewMutation.isPending}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {createSavedViewMutation.isPending ? 'Saving...' : 'Save View'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-1 bg-white rounded-lg shadow-sm overflow-hidden">

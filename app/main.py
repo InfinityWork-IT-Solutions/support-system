@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.database import engine, Base, SessionLocal
-from app.routes import tickets, settings, templates, knowledge, surveys, team
+from app.routes import tickets, settings, templates, knowledge, surveys, team, views
 from app.models import Settings as SettingsModel
 from app.services.scheduler_service import start_scheduler
 
@@ -50,6 +50,7 @@ app.include_router(templates.router)
 app.include_router(knowledge.router)
 app.include_router(surveys.router)
 app.include_router(team.router)
+app.include_router(views.router)
 
 if os.path.exists("client/dist"):
     app.mount("/assets", StaticFiles(directory="client/dist/assets"), name="assets")
