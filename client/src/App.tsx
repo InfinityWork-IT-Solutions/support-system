@@ -1067,52 +1067,78 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
 
   if (showAnalytics) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-6xl mx-auto px-4 py-4">
+      <div className="min-h-screen dashboard-bg">
+        <header className="enterprise-header">
+          <div className="max-w-6xl mx-auto px-6 py-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary-600 p-2 rounded-lg">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
                   <BarChart3 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
-                  <p className="text-sm text-gray-500">Ticket insights and statistics</p>
+                  <h1 className="text-xl font-bold text-white">Analytics Dashboard</h1>
+                  <p className="text-sm text-slate-300">Ticket insights and performance metrics</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAnalytics(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="enterprise-btn enterprise-btn-secondary"
               >
+                <ChevronRight className="w-4 h-4 rotate-180" />
                 Back to Dashboard
               </button>
             </div>
           </div>
         </header>
 
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-2xl font-bold text-gray-900">{analytics?.total_tickets || 0}</div>
-              <div className="text-sm text-gray-500">Total Tickets</div>
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-4 gap-5 mb-8">
+            <div className="stat-card stat-card-cyan p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-cyan-100 to-blue-50 rounded-lg flex items-center justify-center">
+                  <Inbox className="w-5 h-5 text-cyan-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">Total Tickets</span>
+              </div>
+              <div className="text-3xl font-bold text-gray-900">{analytics?.total_tickets || 0}</div>
             </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-2xl font-bold text-green-600">{analytics?.approval_rate || 0}%</div>
-              <div className="text-sm text-gray-500">Approval Rate</div>
+            <div className="stat-card stat-card-green p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-green-50 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">Approval Rate</span>
+              </div>
+              <div className="text-3xl font-bold text-emerald-600">{analytics?.approval_rate || 0}%</div>
             </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-2xl font-bold text-blue-600">{analytics?.sent_count || 0}</div>
-              <div className="text-sm text-gray-500">Responses Sent</div>
+            <div className="stat-card stat-card-blue p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-50 rounded-lg flex items-center justify-center">
+                  <Send className="w-5 h-5 text-blue-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">Responses Sent</span>
+              </div>
+              <div className="text-3xl font-bold text-blue-600">{analytics?.sent_count || 0}</div>
             </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <div className="text-2xl font-bold text-purple-600">{analytics?.ai_processed_count || 0}</div>
-              <div className="text-sm text-gray-500">AI Processed</div>
+            <div className="stat-card stat-card-purple p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-violet-100 to-purple-50 rounded-lg flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-violet-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">AI Processed</span>
+              </div>
+              <div className="text-3xl font-bold text-violet-600">{analytics?.ai_processed_count || 0}</div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Tickets by Category</h2>
+            <div className="chart-container">
+              <div className="chart-title">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-50 rounded-lg flex items-center justify-center">
+                  <Hash className="w-4 h-4 text-blue-600" />
+                </div>
+                Tickets by Category
+              </div>
               {analytics?.by_category && analytics.by_category.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -1134,62 +1160,92 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
-                  No category data available
+                <div className="h-[300px] flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <Hash className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                    <p>No category data available</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Tickets by Urgency</h2>
+            <div className="chart-container">
+              <div className="chart-title">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-100 to-orange-50 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                </div>
+                Tickets by Urgency
+              </div>
               {analytics?.by_urgency && analytics.by_urgency.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={analytics.by_urgency}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#3b82f6">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} />
+                    <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'white', 
+                        border: '1px solid #e2e8f0', 
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }} 
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       {analytics.by_urgency.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`} 
-                          fill={entry.name === 'High' ? '#ef4444' : entry.name === 'Medium' ? '#eab308' : '#22c55e'} 
+                          fill={entry.name === 'High' ? '#ef4444' : entry.name === 'Medium' ? '#f59e0b' : '#10b981'} 
                         />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
-                  No urgency data available
+                <div className="h-[300px] flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                    <p>No urgency data available</p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Ticket Volume Trends (Last 30 Days)</h2>
+          <div className="mt-6 chart-container">
+            <div className="flex items-center justify-between mb-6">
+              <div className="chart-title mb-0">
+                <div className="w-8 h-8 bg-gradient-to-br from-cyan-100 to-blue-50 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-cyan-600" />
+                </div>
+                Ticket Volume Trends (Last 30 Days)
+              </div>
               {volumeTrends && (
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span>Total: <strong className="text-gray-900">{volumeTrends.total}</strong></span>
-                  <span>Daily Avg: <strong className="text-gray-900">{volumeTrends.average}</strong></span>
+                <div className="flex items-center gap-6">
+                  <div className="px-4 py-2 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-100">
+                    <span className="text-sm text-gray-500">Total: </span>
+                    <span className="font-bold text-gray-900">{volumeTrends.total}</span>
+                  </div>
+                  <div className="px-4 py-2 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-100">
+                    <span className="text-sm text-gray-500">Daily Avg: </span>
+                    <span className="font-bold text-gray-900">{volumeTrends.average}</span>
+                  </div>
                 </div>
               )}
             </div>
             {volumeTrends?.trends && volumeTrends.trends.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={volumeTrends.trends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis 
                     dataKey="date" 
                     tickFormatter={(value: string) => {
                       const [year, month, day] = value.split('-').map(Number);
                       return `${month}/${day}`;
                     }}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
                     interval="preserveStartEnd"
                   />
-                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
                   <Tooltip 
                     labelFormatter={(value: string) => {
                       const [year, month, day] = value.split('-').map(Number);
@@ -1197,151 +1253,235 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                       return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                     }}
                     formatter={(value: number) => [value, 'Tickets']}
+                    contentStyle={{ 
+                      background: 'white', 
+                      border: '1px solid #e2e8f0', 
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="count" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    dot={{ fill: '#3b82f6', strokeWidth: 2, r: 3 }}
-                    activeDot={{ r: 5, fill: '#2563eb' }}
+                    stroke="url(#colorGradient)" 
+                    strokeWidth={3}
+                    dot={{ fill: '#0ea5e9', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#2563eb', stroke: '#fff', strokeWidth: 2 }}
                   />
+                  <defs>
+                    <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#0ea5e9" />
+                      <stop offset="100%" stopColor="#2563eb" />
+                    </linearGradient>
+                  </defs>
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-500">
-                No trend data available
+              <div className="h-[250px] flex items-center justify-center text-gray-400">
+                <div className="text-center">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                  <p>No trend data available</p>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">Status Breakdown</h2>
+          <div className="mt-6 enterprise-card p-6">
+            <div className="chart-title">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-100 to-green-50 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+              </div>
+              Status Breakdown
+            </div>
             <div className="grid grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-3xl font-bold text-green-600">{analytics?.approved_count || 0}</div>
-                <div className="text-sm text-gray-600">Approved</div>
+              <div className="text-center p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-green-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-emerald-600">{analytics?.approved_count || 0}</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Approved</div>
               </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-rose-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-red-600">{analytics?.rejected_count || 0}</div>
-                <div className="text-sm text-gray-600">Rejected</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Rejected</div>
               </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Send className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-blue-600">{analytics?.send_rate || 0}%</div>
-                <div className="text-sm text-gray-600">Send Rate</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Send Rate</div>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">Response Time Metrics</h2>
+          <div className="mt-6 enterprise-card p-6">
+            <div className="chart-title">
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-100 to-purple-50 rounded-lg flex items-center justify-center">
+                <Timer className="w-4 h-4 text-violet-600" />
+              </div>
+              Response Time Metrics
+            </div>
             <div className="grid grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-3xl font-bold text-purple-600">{performance?.avg_processing_time_hours || 0}h</div>
-                <div className="text-sm text-gray-600">Avg. Processing Time</div>
+              <div className="text-center p-5 bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-violet-600">{performance?.avg_processing_time_hours || 0}h</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Avg. Processing Time</div>
                 <div className="text-xs text-gray-400 mt-1">Time to AI process ticket</div>
               </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-orange-600">{performance?.avg_approval_time_hours || 0}h</div>
-                <div className="text-sm text-gray-600">Avg. Approval Time</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Avg. Approval Time</div>
                 <div className="text-xs text-gray-400 mt-1">Time to approve response</div>
               </div>
-              <div className="text-center p-4 bg-teal-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl border border-teal-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-teal-600">{performance?.avg_resolution_time_hours || 0}h</div>
-                <div className="text-sm text-gray-600">Avg. Resolution Time</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Avg. Resolution Time</div>
                 <div className="text-xs text-gray-400 mt-1">Time to send response</div>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">Today's Activity</h2>
+          <div className="mt-6 enterprise-card p-6">
+            <div className="chart-title">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-100 to-blue-50 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-cyan-600" />
+              </div>
+              Today's Activity
+            </div>
             <div className="grid grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-gray-200">
+                <div className="w-12 h-12 bg-gradient-to-br from-slate-500 to-gray-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Inbox className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-gray-700">{performance?.today_tickets || 0}</div>
-                <div className="text-sm text-gray-600">Tickets Received</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Tickets Received</div>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-gray-200">
+                <div className="w-12 h-12 bg-gradient-to-br from-slate-500 to-gray-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-gray-700">{performance?.today_processed || 0}</div>
-                <div className="text-sm text-gray-600">Tickets Processed</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Tickets Processed</div>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-gray-200">
+                <div className="w-12 h-12 bg-gradient-to-br from-slate-500 to-gray-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Send className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-gray-700">{performance?.today_sent || 0}</div>
-                <div className="text-sm text-gray-600">Responses Sent</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Responses Sent</div>
               </div>
             </div>
           </div>
 
           {performance?.by_approver && performance.by_approver.length > 0 && (
-            <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Agent Performance</h2>
+            <div className="mt-6 enterprise-card p-6">
+              <div className="chart-title">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-violet-50 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 text-indigo-600" />
+                </div>
+                Agent Performance
+              </div>
               <div className="space-y-3">
                 {performance.by_approver.map((approver, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium text-gray-700">{approver.name}</span>
-                    <span className="text-lg font-bold text-primary-600">{approver.count} approved</span>
+                  <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-lg flex items-center justify-center text-white font-bold">
+                        {approver.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-semibold text-gray-800">{approver.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold text-indigo-600">{approver.count}</span>
+                      <span className="text-sm text-gray-500">approved</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Star className="w-5 h-5 text-yellow-500" />
-              <h2 className="text-lg font-semibold">Customer Satisfaction</h2>
+          <div className="mt-6 enterprise-card p-6">
+            <div className="chart-title">
+              <div className="w-8 h-8 bg-gradient-to-br from-amber-100 to-yellow-50 rounded-lg flex items-center justify-center">
+                <Star className="w-4 h-4 text-amber-500" />
+              </div>
+              Customer Satisfaction
             </div>
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <div className="text-3xl font-bold text-yellow-600">
+            <div className="grid grid-cols-4 gap-5 mb-6">
+              <div className="text-center p-5 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl border border-amber-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Star className="w-6 h-6 text-white fill-white" />
+                </div>
+                <div className="text-3xl font-bold text-amber-600">
                   {surveyStats?.average_rating ? surveyStats.average_rating.toFixed(1) : '0.0'}
                 </div>
-                <div className="text-sm text-gray-600">Avg. Rating</div>
-                <div className="flex items-center justify-center gap-0.5 mt-1">
+                <div className="text-sm font-medium text-gray-600 mt-1">Avg. Rating</div>
+                <div className="flex items-center justify-center gap-0.5 mt-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
                       key={star}
-                      className={`w-3 h-3 ${
-                        star <= (surveyStats?.average_rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                      className={`w-4 h-4 ${
+                        star <= (surveyStats?.average_rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
                       }`}
                     />
                   ))}
                 </div>
               </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-center p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Send className="w-6 h-6 text-white" />
+                </div>
                 <div className="text-3xl font-bold text-blue-600">{surveyStats?.total_sent || 0}</div>
-                <div className="text-sm text-gray-600">Surveys Sent</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Surveys Sent</div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-3xl font-bold text-green-600">{surveyStats?.total_completed || 0}</div>
-                <div className="text-sm text-gray-600">Responses</div>
+              <div className="text-center p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-green-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-emerald-600">{surveyStats?.total_completed || 0}</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Responses</div>
               </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-3xl font-bold text-purple-600">{surveyStats?.response_rate || 0}%</div>
-                <div className="text-sm text-gray-600">Response Rate</div>
+              <div className="text-center p-5 bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-100">
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-violet-600">{surveyStats?.response_rate || 0}%</div>
+                <div className="text-sm font-medium text-gray-600 mt-1">Response Rate</div>
               </div>
             </div>
             {surveyStats?.rating_distribution && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Rating Distribution</h3>
-                <div className="space-y-2">
+              <div className="p-5 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4">Rating Distribution</h3>
+                <div className="space-y-3">
                   {[5, 4, 3, 2, 1].map((rating) => {
                     const count = surveyStats.rating_distribution[String(rating)] || 0;
                     const total = surveyStats.total_completed || 1;
                     const percentage = Math.round((count / total) * 100);
                     return (
-                      <div key={rating} className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 w-16">
-                          <span className="text-sm font-medium">{rating}</span>
-                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                      <div key={rating} className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 w-16">
+                          <span className="text-sm font-semibold text-gray-700">{rating}</span>
+                          <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                         </div>
-                        <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-yellow-400 rounded-full transition-all"
+                            className="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full transition-all"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
-                        <span className="text-sm text-gray-500 w-12 text-right">{count}</span>
+                        <span className="text-sm font-semibold text-gray-600 w-14 text-right">{count} ({percentage}%)</span>
                       </div>
                     );
                   })}
@@ -2607,32 +2747,41 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                 </div>
 
                 {selectedTicket.summary && (
-                  <div className="p-6 border-b">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">AI Summary</h3>
-                    <p className="text-gray-700">{selectedTicket.summary}</p>
+                  <div className="m-6 detail-section">
+                    <div className="detail-section-header">
+                      <div className="w-8 h-8 bg-gradient-to-br from-cyan-100 to-blue-50 rounded-lg flex items-center justify-center">
+                        <Zap className="w-4 h-4 text-cyan-600" />
+                      </div>
+                      AI Summary
+                    </div>
+                    <div className="detail-section-content">
+                      <p className="text-gray-700 leading-relaxed">{selectedTicket.summary}</p>
+                    </div>
                   </div>
                 )}
 
                 {knowledgeSuggestions.length > 0 && (
-                  <div className="p-6 border-b bg-yellow-50">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Lightbulb className="w-4 h-4 text-yellow-600" />
-                      <h3 className="text-sm font-semibold text-gray-900">Suggested Knowledge Articles</h3>
+                  <div className="mx-6 mb-6 detail-section" style={{ background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)' }}>
+                    <div className="detail-section-header" style={{ background: 'linear-gradient(135deg, #fef9c3 0%, #fde68a 100%)' }}>
+                      <div className="w-8 h-8 bg-gradient-to-br from-amber-200 to-yellow-100 rounded-lg flex items-center justify-center">
+                        <Lightbulb className="w-4 h-4 text-amber-600" />
+                      </div>
+                      Suggested Knowledge Articles
                     </div>
-                    <div className="space-y-2">
+                    <div className="detail-section-content space-y-2">
                       {knowledgeSuggestions.map((article) => (
-                        <div key={article.id} className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                        <div key={article.id} className="flex items-center justify-between bg-white p-4 rounded-xl border border-amber-100 hover:border-amber-200 transition-all">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-gray-900 truncate">{article.title}</div>
+                            <div className="font-semibold text-sm text-gray-900 truncate">{article.title}</div>
                             {article.category && (
-                              <span className="text-xs text-gray-500">{article.category}</span>
+                              <span className="text-xs text-amber-600 font-medium">{article.category}</span>
                             )}
                           </div>
                           <button
                             onClick={() => applyArticleToResponse(article)}
-                            className="ml-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                            className="ml-3 enterprise-btn enterprise-btn-primary text-xs py-2 px-3"
                           >
-                            Use
+                            Use Article
                           </button>
                         </div>
                       ))}
@@ -2640,67 +2789,97 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                   </div>
                 )}
 
-                <div className="p-6 border-b">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Conversation</h3>
-                  <div className="space-y-4">
+                <div className="mx-6 mb-6 detail-section">
+                  <div className="detail-section-header">
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-violet-50 rounded-lg flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    Conversation
+                  </div>
+                  <div className="detail-section-content space-y-4">
                     {selectedTicket.messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`p-4 rounded-lg ${
-                          msg.is_incoming ? 'bg-gray-50' : 'bg-green-50 ml-8'
+                        className={`p-4 rounded-xl border transition-all ${
+                          msg.is_incoming 
+                            ? 'bg-gradient-to-br from-slate-50 to-gray-50 border-gray-200' 
+                            : 'bg-gradient-to-br from-emerald-50 to-green-50 border-green-200 ml-8'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            {msg.is_incoming ? msg.sender_email : 'InfinityWork Support'}
-                          </span>
-                          <span className="text-xs text-gray-500">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              msg.is_incoming 
+                                ? 'bg-gradient-to-br from-slate-200 to-gray-100' 
+                                : 'bg-gradient-to-br from-emerald-200 to-green-100'
+                            }`}>
+                              <User className={`w-4 h-4 ${msg.is_incoming ? 'text-slate-600' : 'text-emerald-600'}`} />
+                            </div>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {msg.is_incoming ? msg.sender_email : 'InfinityWork Support'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
                             {new Date(msg.created_at).toLocaleString()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.body}</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed pl-10">{msg.body}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {selectedTicket.fix_steps && (
-                  <div className="p-6 border-b">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Troubleshooting Steps</h3>
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">
-                      {selectedTicket.fix_steps}
-                    </pre>
+                  <div className="mx-6 mb-6 detail-section">
+                    <div className="detail-section-header">
+                      <div className="w-8 h-8 bg-gradient-to-br from-orange-100 to-amber-50 rounded-lg flex items-center justify-center">
+                        <Target className="w-4 h-4 text-orange-600" />
+                      </div>
+                      Troubleshooting Steps
+                    </div>
+                    <div className="detail-section-content">
+                      <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gradient-to-br from-slate-50 to-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed">
+                        {selectedTicket.fix_steps}
+                      </pre>
+                    </div>
                   </div>
                 )}
 
                 {customerHistory.length > 0 && (
-                  <div className="p-6 border-b bg-blue-50">
-                    <div className="flex items-center gap-2 mb-3">
-                      <User className="w-4 h-4 text-blue-600" />
-                      <h3 className="text-sm font-semibold text-gray-900">Customer History ({customerHistory.length} previous tickets)</h3>
+                  <div className="mx-6 mb-6 detail-section" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' }}>
+                    <div className="detail-section-header" style={{ background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)' }}>
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-200 to-sky-100 rounded-lg flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      Customer History
+                      <span className="ml-2 px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full font-semibold">
+                        {customerHistory.length}
+                      </span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="detail-section-content space-y-3">
                       {customerHistory.map((historyTicket) => (
                         <div 
                           key={historyTicket.id} 
-                          className="flex items-center justify-between bg-white p-3 rounded-lg border cursor-pointer hover:bg-gray-50"
+                          className="flex items-center justify-between bg-white p-4 rounded-xl border border-blue-100 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
                           onClick={() => handleSelectTicket(historyTicket)}
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-gray-900 truncate">{historyTicket.subject}</div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(historyTicket.approval_status)}`}>
+                            <div className="font-semibold text-sm text-gray-900 truncate group-hover:text-blue-600 transition-colors">{historyTicket.subject}</div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`status-badge status-${historyTicket.approval_status.toLowerCase()}`}>
                                 {historyTicket.approval_status}
                               </span>
                               {historyTicket.category && (
-                                <span className="text-xs text-gray-500">{historyTicket.category}</span>
+                                <span className="text-xs text-blue-600 font-medium">{historyTicket.category}</span>
                               )}
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
                                 {new Date(historyTicket.received_at).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                         </div>
                       ))}
                     </div>
@@ -2708,9 +2887,14 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                 )}
 
                 {selectedTicket.ai_processed && (
-                  <div className="p-6 border-b">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-gray-900">Draft Response</h3>
+                  <div className="mx-6 mb-6 detail-section">
+                    <div className="detail-section-header justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-violet-100 to-purple-50 rounded-lg flex items-center justify-center">
+                          <Edit2 className="w-4 h-4 text-violet-600" />
+                        </div>
+                        Draft Response
+                      </div>
                       {templates.length > 0 && (
                         <select
                           onChange={(e) => {
@@ -2718,7 +2902,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                             if (template) applyTemplate(template)
                             e.target.value = ''
                           }}
-                          className="text-sm px-2 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="enterprise-select w-auto text-sm py-2"
                           defaultValue=""
                         >
                           <option value="" disabled>Use Template...</option>
@@ -2728,42 +2912,46 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                         </select>
                       )}
                     </div>
-                    <textarea
-                      value={editedDraft || selectedTicket.draft_response || ''}
-                      onChange={(e) => setEditedDraft(e.target.value)}
-                      className="w-full h-40 p-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                    {editedDraft !== selectedTicket.draft_response && (
-                      <button
-                        onClick={() => updateDraftMutation.mutate({ id: selectedTicket.id, draft: editedDraft })}
-                        disabled={updateDraftMutation.isPending}
-                        className="mt-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 text-sm"
-                      >
-                        Save Changes
-                      </button>
-                    )}
+                    <div className="detail-section-content">
+                      <textarea
+                        value={editedDraft || selectedTicket.draft_response || ''}
+                        onChange={(e) => setEditedDraft(e.target.value)}
+                        className="enterprise-input h-40 resize-none font-mono text-sm"
+                        placeholder="Draft your response here..."
+                      />
+                      {editedDraft !== selectedTicket.draft_response && (
+                        <button
+                          onClick={() => updateDraftMutation.mutate({ id: selectedTicket.id, draft: editedDraft })}
+                          disabled={updateDraftMutation.isPending}
+                          className="mt-3 enterprise-btn enterprise-btn-secondary"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save Changes
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                <div className="p-6 bg-gray-50">
+                <div className="p-6 bg-gradient-to-r from-slate-50 via-gray-50 to-slate-50 border-t border-gray-100">
                   <div className="flex items-center gap-3">
                     {selectedTicket.approval_status === 'PENDING' && selectedTicket.ai_processed && (
                       <>
                         <button
                           onClick={() => approveMutation.mutate(selectedTicket.id)}
                           disabled={approveMutation.isPending}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          className="enterprise-btn enterprise-btn-success"
                         >
                           <CheckCircle className="w-4 h-4" />
-                          Approve
+                          {approveMutation.isPending ? 'Approving...' : 'Approve'}
                         </button>
                         <button
                           onClick={() => rejectMutation.mutate(selectedTicket.id)}
                           disabled={rejectMutation.isPending}
-                          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                          className="enterprise-btn enterprise-btn-danger"
                         >
                           <XCircle className="w-4 h-4" />
-                          Reject
+                          {rejectMutation.isPending ? 'Rejecting...' : 'Reject'}
                         </button>
                       </>
                     )}
@@ -2771,16 +2959,21 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                       <button
                         onClick={() => sendMutation.mutate(selectedTicket.id)}
                         disabled={sendMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                        className="enterprise-btn enterprise-btn-primary"
                       >
                         <Send className="w-4 h-4" />
-                        Send Response
+                        {sendMutation.isPending ? 'Sending...' : 'Send Response'}
                       </button>
                     )}
                     {selectedTicket.sent_at && (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle className="w-5 h-5" />
-                        <span>Response sent on {new Date(selectedTicket.sent_at).toLocaleString()}</span>
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-green-200">
+                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-lg flex items-center justify-center">
+                          <CheckCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-green-700">Response Sent</div>
+                          <div className="text-sm text-green-600">{new Date(selectedTicket.sent_at).toLocaleString()}</div>
+                        </div>
                       </div>
                     )}
                   </div>
