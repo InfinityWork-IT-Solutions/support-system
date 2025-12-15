@@ -69,6 +69,10 @@ function App() {
     return <Login onLogin={handleLogin} />
   }
 
+  return <Dashboard currentUser={currentUser} onLogout={handleLogout} />
+}
+
+function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: () => void }) {
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   const [showSettings, setShowSettings] = useState(false)
@@ -2060,7 +2064,7 @@ function App() {
                   <span>{currentUser}</span>
                 </div>
                 <button
-                  onClick={handleLogout}
+                  onClick={onLogout}
                   className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Logout"
                 >
