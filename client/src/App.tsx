@@ -14,7 +14,9 @@ import {
   MessageSquare,
   Settings,
   Save,
-  TestTube2
+  TestTube2,
+  Square,
+  CheckSquare
 } from 'lucide-react'
 
 function App() {
@@ -30,6 +32,7 @@ function App() {
   const [editedDraft, setEditedDraft] = useState('')
   const [settingsForm, setSettingsForm] = useState<Partial<AppSettings>>({})
   const [testResult, setTestResult] = useState<{type: string; success: boolean; message: string} | null>(null)
+  const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(new Set())
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -129,6 +132,32 @@ function App() {
     onSuccess: (data) => setTestResult({ type: 'SMTP', ...data }),
   })
 
+  const bulkApproveMutation = useMutation({
+    mutationFn: (ids: number[]) => api.bulkApprove(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+      setSelectedTicketIds(new Set())
+    },
+  })
+
+  const bulkRejectMutation = useMutation({
+    mutationFn: (ids: number[]) => api.bulkReject(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
+      setSelectedTicketIds(new Set())
+    },
+  })
+
+  const bulkSendMutation = useMutation({
+    mutationFn: (ids: number[]) => api.bulkSend(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+      setSelectedTicketIds(new Set())
+    },
+  })
+
   const getUrgencyColor = (urgency: string | null) => {
     switch (urgency) {
       case 'High': return 'text-red-600 bg-red-50'
@@ -159,6 +188,33 @@ function App() {
   const handleSaveSettings = () => {
     saveSettingsMutation.mutate(settingsForm)
   }
+
+  const toggleTicketSelection = (ticketId: number, event: React.MouseEvent) => {
+    event.stopPropagation()
+    setSelectedTicketIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(ticketId)) {
+        newSet.delete(ticketId)
+      } else {
+        newSet.add(ticketId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedTicketIds.size === tickets.length) {
+      setSelectedTicketIds(new Set())
+    } else {
+      setSelectedTicketIds(new Set(tickets.map(t => t.id)))
+    }
+  }
+
+  const getSelectedPendingIds = () => 
+    tickets.filter(t => selectedTicketIds.has(t.id) && t.approval_status === 'PENDING' && t.ai_processed).map(t => t.id)
+  
+  const getSelectedApprovedIds = () => 
+    tickets.filter(t => selectedTicketIds.has(t.id) && t.approval_status === 'APPROVED' && !t.sent_at).map(t => t.id)
 
   if (showSettings) {
     return (
@@ -457,7 +513,59 @@ function App() {
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-1 bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b bg-gray-50">
-              <h2 className="font-semibold text-gray-900">Tickets ({tickets.length})</h2>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="p-1 hover:bg-gray-200 rounded"
+                    title={selectedTicketIds.size === tickets.length ? 'Deselect all' : 'Select all'}
+                  >
+                    {selectedTicketIds.size === tickets.length && tickets.length > 0 ? (
+                      <CheckSquare className="w-4 h-4 text-primary-600" />
+                    ) : (
+                      <Square className="w-4 h-4 text-gray-400" />
+                    )}
+                  </button>
+                  <h2 className="font-semibold text-gray-900">Tickets ({tickets.length})</h2>
+                </div>
+                {selectedTicketIds.size > 0 && (
+                  <span className="text-xs text-primary-600 font-medium">{selectedTicketIds.size} selected</span>
+                )}
+              </div>
+              {selectedTicketIds.size > 0 && (
+                <div className="flex items-center gap-2 mt-3">
+                  {getSelectedPendingIds().length > 0 && (
+                    <>
+                      <button
+                        onClick={() => bulkApproveMutation.mutate(getSelectedPendingIds())}
+                        disabled={bulkApproveMutation.isPending}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        Approve ({getSelectedPendingIds().length})
+                      </button>
+                      <button
+                        onClick={() => bulkRejectMutation.mutate(getSelectedPendingIds())}
+                        disabled={bulkRejectMutation.isPending}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                      >
+                        <XCircle className="w-3 h-3" />
+                        Reject ({getSelectedPendingIds().length})
+                      </button>
+                    </>
+                  )}
+                  {getSelectedApprovedIds().length > 0 && (
+                    <button
+                      onClick={() => bulkSendMutation.mutate(getSelectedApprovedIds())}
+                      disabled={bulkSendMutation.isPending}
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      <Send className="w-3 h-3" />
+                      Send ({getSelectedApprovedIds().length})
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div className="max-h-[600px] overflow-y-auto">
               {ticketsLoading ? (
@@ -474,10 +582,22 @@ function App() {
                     }`}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-900 truncate flex-1">
-                        {ticket.sender_email}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <button
+                          onClick={(e) => toggleTicketSelection(ticket.id, e)}
+                          className="p-0.5 hover:bg-gray-200 rounded flex-shrink-0"
+                        >
+                          {selectedTicketIds.has(ticket.id) ? (
+                            <CheckSquare className="w-4 h-4 text-primary-600" />
+                          ) : (
+                            <Square className="w-4 h-4 text-gray-400" />
+                          )}
+                        </button>
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {ticket.sender_email}
+                        </span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     </div>
                     <div className="text-sm text-gray-700 truncate mb-2">{ticket.subject}</div>
                     <div className="flex items-center gap-2 flex-wrap">

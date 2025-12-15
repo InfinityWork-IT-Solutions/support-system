@@ -57,6 +57,10 @@ class UpdateDraftRequest(BaseModel):
     draft_response: str
 
 
+class BulkActionRequest(BaseModel):
+    ticket_ids: List[int]
+
+
 @router.get("/stats/summary")
 def get_stats(db: Session = Depends(get_db)):
     total = db.query(Ticket).count()
@@ -277,3 +281,30 @@ def send_response(ticket_id: int, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=400, detail="Could not send response")
     return {"status": "sent"}
+
+
+@router.post("/bulk-approve")
+def bulk_approve(request: BulkActionRequest, db: Session = Depends(get_db)):
+    approved_count = 0
+    for ticket_id in request.ticket_ids:
+        if approve_ticket(db, ticket_id):
+            approved_count += 1
+    return {"approved": approved_count}
+
+
+@router.post("/bulk-reject")
+def bulk_reject(request: BulkActionRequest, db: Session = Depends(get_db)):
+    rejected_count = 0
+    for ticket_id in request.ticket_ids:
+        if reject_ticket(db, ticket_id):
+            rejected_count += 1
+    return {"rejected": rejected_count}
+
+
+@router.post("/bulk-send")
+def bulk_send(request: BulkActionRequest, db: Session = Depends(get_db)):
+    sent_count = 0
+    for ticket_id in request.ticket_ids:
+        if send_approved_response(db, ticket_id):
+            sent_count += 1
+    return {"sent": sent_count}
