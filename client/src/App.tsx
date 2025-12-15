@@ -150,6 +150,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
     name: string;
     is_default: boolean;
   }>({ name: '', is_default: false })
+  const [activeSettingsSection, setActiveSettingsSection] = useState<string>('imap')
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -761,165 +762,188 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
 
   if (showKnowledge) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-6xl mx-auto px-4 py-4">
+      <div className="min-h-screen dashboard-bg">
+        <header className="enterprise-header sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary-600 p-2 rounded-lg">
-                  <BookOpen className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-400/30 blur-xl rounded-full"></div>
+                  <div className="relative bg-gradient-to-br from-emerald-400 to-teal-500 p-2.5 rounded-xl shadow-lg">
+                    <BookOpen className="w-6 h-6 text-white" />
+                  </div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Knowledge Base</h1>
-                  <p className="text-sm text-gray-500">Solution articles and help guides</p>
+                  <h1 className="text-xl font-bold text-white tracking-tight">Knowledge Base</h1>
+                  <p className="text-sm text-emerald-300/80">Solution articles and help guides</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowKnowledge(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="enterprise-btn enterprise-btn-secondary"
               >
+                <ChevronRight className="w-4 h-4 rotate-180" />
                 Back to Dashboard
               </button>
             </div>
           </div>
         </header>
 
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search knowledge base..."
-                value={knowledgeSearch}
-                onChange={(e) => setKnowledgeSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="enterprise-card p-4 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search knowledge base articles..."
+                  value={knowledgeSearch}
+                  onChange={(e) => setKnowledgeSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 enterprise-input"
+                />
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <span>{knowledgeArticles.length} article{knowledgeArticles.length !== 1 ? 's' : ''} available</span>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">
-                {editingArticleId ? 'Edit Article' : 'Create New Article'}
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={knowledgeForm.title}
-                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, title: e.target.value })}
-                    placeholder="e.g., How to Reset Password"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select
-                    value={knowledgeForm.category}
-                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, category: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">No Category</option>
-                    <option value="Technical">Technical</option>
-                    <option value="Billing">Billing</option>
-                    <option value="Login / Access">Login / Access</option>
-                    <option value="Feature Request">Feature Request</option>
-                    <option value="General Inquiry">General Inquiry</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Keywords (comma-separated)</label>
-                  <input
-                    type="text"
-                    value={knowledgeForm.keywords}
-                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, keywords: e.target.value })}
-                    placeholder="e.g., password, reset, login, forgot"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                  <textarea
-                    value={knowledgeForm.content}
-                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, content: e.target.value })}
-                    placeholder="Enter the article content..."
-                    className="w-full h-48 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleSaveArticle}
-                    disabled={!knowledgeForm.title || !knowledgeForm.content || createArticleMutation.isPending || updateArticleMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                  >
-                    <Save className="w-4 h-4" />
-                    {editingArticleId ? 'Update Article' : 'Save Article'}
-                  </button>
-                  {editingArticleId && (
-                    <button
-                      onClick={handleCancelArticleEdit}
-                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            <div className="detail-section">
+              <div className="detail-section-header">
+                {editingArticleId ? <Edit2 className="w-5 h-5 text-emerald-600" /> : <Plus className="w-5 h-5 text-emerald-600" />}
+                <span>{editingArticleId ? 'Edit Article' : 'Create New Article'}</span>
+              </div>
+              <div className="detail-section-content">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Article Title</label>
+                    <input
+                      type="text"
+                      value={knowledgeForm.title}
+                      onChange={(e) => setKnowledgeForm({ ...knowledgeForm, title: e.target.value })}
+                      placeholder="e.g., How to Reset Password"
+                      className="enterprise-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                    <select
+                      value={knowledgeForm.category}
+                      onChange={(e) => setKnowledgeForm({ ...knowledgeForm, category: e.target.value })}
+                      className="enterprise-select"
                     >
-                      Cancel
+                      <option value="">No Category</option>
+                      <option value="Technical">Technical</option>
+                      <option value="Billing">Billing</option>
+                      <option value="Login / Access">Login / Access</option>
+                      <option value="Feature Request">Feature Request</option>
+                      <option value="General Inquiry">General Inquiry</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Keywords</label>
+                    <input
+                      type="text"
+                      value={knowledgeForm.keywords}
+                      onChange={(e) => setKnowledgeForm({ ...knowledgeForm, keywords: e.target.value })}
+                      placeholder="e.g., password, reset, login, forgot"
+                      className="enterprise-input"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Separate keywords with commas for better search matching</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Content</label>
+                    <textarea
+                      value={knowledgeForm.content}
+                      onChange={(e) => setKnowledgeForm({ ...knowledgeForm, content: e.target.value })}
+                      placeholder="Enter the article content with step-by-step instructions..."
+                      className="enterprise-input h-48"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      onClick={handleSaveArticle}
+                      disabled={!knowledgeForm.title || !knowledgeForm.content || createArticleMutation.isPending || updateArticleMutation.isPending}
+                      className="enterprise-btn enterprise-btn-success"
+                    >
+                      <Save className="w-4 h-4" />
+                      {editingArticleId ? 'Update Article' : 'Save Article'}
                     </button>
-                  )}
+                    {editingArticleId && (
+                      <button
+                        onClick={handleCancelArticleEdit}
+                        className="enterprise-btn enterprise-btn-secondary"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Articles ({knowledgeArticles.length})</h2>
-              {knowledgeArticles.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>No articles yet. Create your first one!</p>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {knowledgeArticles.map((article) => (
-                    <div key={article.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{article.title}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            {article.category && (
-                              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-                                {article.category}
-                              </span>
-                            )}
-                            {article.keywords && (
-                              <span className="text-xs text-gray-400">
-                                {article.keywords.split(',').slice(0, 3).join(', ')}
-                              </span>
-                            )}
+            <div className="detail-section">
+              <div className="detail-section-header">
+                <BookOpen className="w-5 h-5 text-emerald-600" />
+                <span>Articles Library</span>
+                <span className="ml-auto text-xs text-gray-500 font-normal">{knowledgeArticles.length} article{knowledgeArticles.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="detail-section-content p-0">
+                {knowledgeArticles.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <BookOpen className="w-8 h-8 text-emerald-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No articles yet</h3>
+                    <p className="text-sm text-gray-500">Create your first knowledge base article to help resolve tickets faster.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto scrollbar-thin">
+                    {knowledgeArticles.map((article) => (
+                      <div key={article.id} className="p-4 hover:bg-gray-50 transition-colors group">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">{article.title}</h3>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              {article.category && (
+                                <span className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-medium">
+                                  {article.category}
+                                </span>
+                              )}
+                              {article.keywords && (
+                                <span className="text-xs text-gray-400">
+                                  {article.keywords.split(',').slice(0, 3).join(', ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleEditArticle(article)}
+                              className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition-colors"
+                              title="Edit article"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteArticleMutation.mutate(article.id)}
+                              disabled={deleteArticleMutation.isPending}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete article"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEditArticle(article)}
-                            className="p-1.5 text-gray-500 hover:bg-gray-200 rounded"
-                            title="Edit article"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteArticleMutation.mutate(article.id)}
-                            disabled={deleteArticleMutation.isPending}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
-                            title="Delete article"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-2">{article.content}</p>
                       </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">{article.content}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -929,36 +953,50 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
 
   if (showTemplates) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-6xl mx-auto px-4 py-4">
+      <div className="min-h-screen dashboard-bg">
+        <header className="enterprise-header sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary-600 p-2 rounded-lg">
-                  <FileText className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-violet-400/30 blur-xl rounded-full"></div>
+                  <div className="relative bg-gradient-to-br from-violet-400 to-purple-500 p-2.5 rounded-xl shadow-lg">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Response Templates</h1>
-                  <p className="text-sm text-gray-500">Manage reusable response templates</p>
+                  <h1 className="text-xl font-bold text-white tracking-tight">Response Templates</h1>
+                  <p className="text-sm text-violet-300/80">Manage reusable response templates</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowTemplates(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="enterprise-btn enterprise-btn-secondary"
               >
+                <ChevronRight className="w-4 h-4 rotate-180" />
                 Back to Dashboard
               </button>
             </div>
           </div>
         </header>
 
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="enterprise-card p-4 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <FileText className="w-4 h-4 text-violet-500" />
+                <span>{templates.length} template{templates.length !== 1 ? 's' : ''} available</span>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">
+            <div className="detail-section">
+              <div className="detail-section-header">
+                {editingTemplateId ? <Edit2 className="w-5 h-5 text-violet-600" /> : <Plus className="w-5 h-5 text-violet-600" />}
                 {editingTemplateId ? 'Edit Template' : 'Create New Template'}
-              </h2>
-              <div className="space-y-4">
+              </div>
+              <div className="detail-section-content space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
                   <input
@@ -966,7 +1004,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                     value={templateForm.name}
                     onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
                     placeholder="e.g., Password Reset Response"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full enterprise-input"
                   />
                 </div>
                 <div>
@@ -974,7 +1012,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                   <select
                     value={templateForm.category}
                     onChange={(e) => setTemplateForm({ ...templateForm, category: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full enterprise-input"
                   >
                     <option value="">No Category</option>
                     <option value="Technical">Technical</option>
@@ -991,14 +1029,14 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                     value={templateForm.content}
                     onChange={(e) => setTemplateForm({ ...templateForm, content: e.target.value })}
                     placeholder="Enter your template text here..."
-                    className="w-full h-48 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full h-48 enterprise-input resize-none"
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 pt-2">
                   <button
                     onClick={handleSaveTemplate}
                     disabled={!templateForm.name || !templateForm.content || createTemplateMutation.isPending || updateTemplateMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    className="enterprise-btn enterprise-btn-success disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
                     {editingTemplateId ? 'Update Template' : 'Save Template'}
@@ -1006,7 +1044,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                   {editingTemplateId && (
                     <button
                       onClick={handleCancelEdit}
-                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                      className="enterprise-btn enterprise-btn-secondary"
                     >
                       Cancel
                     </button>
@@ -1015,49 +1053,60 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Existing Templates ({templates.length})</h2>
-              {templates.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>No templates yet. Create your first one!</p>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {templates.map((template) => (
-                    <div key={template.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{template.name}</h3>
-                          {template.category && (
-                            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-                              {template.category}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEditTemplate(template)}
-                            className="p-1.5 text-gray-500 hover:bg-gray-200 rounded"
-                            title="Edit template"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteTemplateMutation.mutate(template.id)}
-                            disabled={deleteTemplateMutation.isPending}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
-                            title="Delete template"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+            <div className="detail-section">
+              <div className="detail-section-header">
+                <FileText className="w-5 h-5 text-violet-600" />
+                Existing Templates ({templates.length})
+              </div>
+              <div className="detail-section-content">
+                {templates.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="relative inline-block mb-4">
+                      <div className="absolute inset-0 bg-violet-200/50 blur-xl rounded-full"></div>
+                      <div className="relative bg-gradient-to-br from-violet-100 to-purple-50 p-4 rounded-2xl">
+                        <FileText className="w-10 h-10 text-violet-400" />
                       </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">{template.content}</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <p className="text-gray-500 font-medium">No templates yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Create your first template to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    {templates.map((template) => (
+                      <div key={template.id} className="p-4 border border-gray-200 rounded-xl hover:border-violet-200 hover:bg-violet-50/30 transition-all group">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-medium text-gray-900">{template.name}</h3>
+                            {template.category && (
+                              <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-600 rounded-full">
+                                {template.category}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleEditTemplate(template)}
+                              className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition-colors"
+                              title="Edit template"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteTemplateMutation.mutate(template.id)}
+                              disabled={deleteTemplateMutation.isPending}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete template"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-2">{template.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1495,630 +1544,819 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   }
 
   if (showSettings) {
+    const settingsSections = [
+      { id: 'imap', name: 'IMAP Settings', icon: Inbox, group: 'Email Infrastructure', description: 'Incoming email configuration' },
+      { id: 'smtp', name: 'SMTP Settings', icon: Send, group: 'Email Infrastructure', description: 'Outgoing email configuration' },
+      { id: 'scheduler', name: 'Auto-Fetch', icon: Clock, group: 'Automation', description: 'Scheduled email polling' },
+      { id: 'autoresponder', name: 'Auto-Responder', icon: Mail, group: 'Automation', description: 'Automatic acknowledgments' },
+      { id: 'email-notify', name: 'Email Alerts', icon: Bell, group: 'Notifications', description: 'Team email notifications' },
+      { id: 'slack', name: 'Slack', icon: Hash, group: 'Notifications', description: 'Slack webhook integration' },
+      { id: 'sla', name: 'SLA Settings', icon: Timer, group: 'Operations', description: 'Response time deadlines' },
+      { id: 'team', name: 'Team Members', icon: Users, group: 'Operations', description: 'Manage support agents' },
+    ]
+
+    const groups = [
+      { name: 'Email Infrastructure', icon: Mail },
+      { name: 'Automation', icon: Zap },
+      { name: 'Notifications', icon: Bell },
+      { name: 'Operations', icon: Settings },
+    ]
+
     return (
-      <div className="min-h-screen bg-gray-100">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="min-h-screen dashboard-bg">
+        <header className="enterprise-header sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary-600 p-2 rounded-lg">
-                  <Settings className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-cyan-400/30 blur-xl rounded-full"></div>
+                  <div className="relative bg-gradient-to-br from-cyan-400 to-blue-500 p-2.5 rounded-xl shadow-lg">
+                    <Settings className="w-6 h-6 text-white" />
+                  </div>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Settings</h1>
-                  <p className="text-sm text-gray-500">Configure email and AI settings</p>
+                  <h1 className="text-xl font-bold text-white tracking-tight">Settings</h1>
+                  <p className="text-sm text-cyan-300/80">Configure system preferences</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowSettings(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                className="enterprise-btn enterprise-btn-secondary"
               >
+                <ChevronRight className="w-4 h-4 rotate-180" />
                 Back to Dashboard
               </button>
             </div>
           </div>
         </header>
 
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-6 py-6">
           {testResult && (
-            <div className={`mb-6 p-4 rounded-lg ${testResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-              <strong>{testResult.type} Test:</strong> {testResult.message}
-              <button onClick={() => setTestResult(null)} className="ml-4 underline">Dismiss</button>
+            <div className={`mb-6 p-4 rounded-xl flex items-center justify-between ${testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+              <div className="flex items-center gap-3">
+                {testResult.success ? (
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-red-600" />
+                )}
+                <span className={testResult.success ? 'text-green-800' : 'text-red-800'}>
+                  <strong>{testResult.type} Test:</strong> {testResult.message}
+                </span>
+              </div>
+              <button onClick={() => setTestResult(null)} className="text-sm font-medium underline text-gray-600 hover:text-gray-800">Dismiss</button>
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">IMAP Settings (Incoming Email)</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Host</label>
-                <input
-                  type="text"
-                  placeholder={currentSettings?.imap_host || "imap.gmail.com"}
-                  value={settingsForm.imap_host ?? ''}
-                  onChange={(e) => handleSettingsChange('imap_host', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Port</label>
-                <input
-                  type="text"
-                  placeholder={currentSettings?.imap_port || "993"}
-                  value={settingsForm.imap_port ?? ''}
-                  onChange={(e) => handleSettingsChange('imap_port', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Username</label>
-                <input
-                  type="text"
-                  placeholder={currentSettings?.imap_username || "your-email@gmail.com"}
-                  value={settingsForm.imap_username ?? ''}
-                  onChange={(e) => handleSettingsChange('imap_username', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Password</label>
-                <input
-                  type="password"
-                  placeholder="App password"
-                  value={settingsForm.imap_password ?? ''}
-                  onChange={(e) => handleSettingsChange('imap_password', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-            <button
-              onClick={() => testImapMutation.mutate()}
-              disabled={testImapMutation.isPending}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-            >
-              <TestTube2 className="w-4 h-4" />
-              {testImapMutation.isPending ? 'Testing...' : 'Test IMAP Connection'}
-            </button>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">SMTP Settings (Outgoing Email)</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Host</label>
-                <input
-                  type="text"
-                  placeholder={currentSettings?.smtp_host || "smtp.gmail.com"}
-                  value={settingsForm.smtp_host ?? ''}
-                  onChange={(e) => handleSettingsChange('smtp_host', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Port</label>
-                <input
-                  type="text"
-                  placeholder={currentSettings?.smtp_port || "587"}
-                  value={settingsForm.smtp_port ?? ''}
-                  onChange={(e) => handleSettingsChange('smtp_port', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Username</label>
-                <input
-                  type="text"
-                  placeholder={currentSettings?.smtp_username || "your-email@gmail.com"}
-                  value={settingsForm.smtp_username ?? ''}
-                  onChange={(e) => handleSettingsChange('smtp_username', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Password</label>
-                <input
-                  type="password"
-                  placeholder="App password"
-                  value={settingsForm.smtp_password ?? ''}
-                  onChange={(e) => handleSettingsChange('smtp_password', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">From Email</label>
-                <input
-                  type="text"
-                  placeholder={currentSettings?.smtp_from_email || "support@infinityworkitsolutions.com"}
-                  value={settingsForm.smtp_from_email ?? ''}
-                  onChange={(e) => handleSettingsChange('smtp_from_email', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-            <button
-              onClick={() => testSmtpMutation.mutate()}
-              disabled={testSmtpMutation.isPending}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-            >
-              <TestTube2 className="w-4 h-4" />
-              {testSmtpMutation.isPending ? 'Testing...' : 'Test SMTP Connection'}
-            </button>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">OpenAI Settings</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-              <input
-                type="password"
-                placeholder="sk-..."
-                value={settingsForm.openai_api_key ?? ''}
-                onChange={(e) => handleSettingsChange('openai_api_key', e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary-600" />
-                <h2 className="text-lg font-semibold">Auto-Fetch Scheduler</h2>
-              </div>
-              {schedulerStatus?.running && (
-                <span className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  Running
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Automatically fetch new emails at regular intervals. When enabled, the system will check for new emails periodically.
-            </p>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateSchedulerMutation.mutate({ 
-                      enabled: !schedulerStatus?.enabled, 
-                      interval: schedulerStatus?.interval_minutes || 5 
-                    })}
-                    disabled={updateSchedulerMutation.isPending}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                      schedulerStatus?.enabled 
-                        ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
-                    }`}
-                  >
-                    {schedulerStatus?.enabled ? (
-                      <>
-                        <Pause className="w-4 h-4" />
-                        {updateSchedulerMutation.isPending ? 'Stopping...' : 'Stop Scheduler'}
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4" />
-                        {updateSchedulerMutation.isPending ? 'Starting...' : 'Start Scheduler'}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Interval (minutes)</label>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={schedulerStatus?.interval_minutes || 5}
-                    onChange={(e) => {
-                      const newInterval = parseInt(e.target.value)
-                      updateSchedulerMutation.mutate({ 
-                        enabled: schedulerStatus?.enabled || false, 
-                        interval: newInterval 
-                      })
-                    }}
-                    className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value={1}>1 minute</option>
-                    <option value={2}>2 minutes</option>
-                    <option value={5}>5 minutes</option>
-                    <option value={10}>10 minutes</option>
-                    <option value={15}>15 minutes</option>
-                    <option value={30}>30 minutes</option>
-                    <option value={60}>60 minutes</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="text-xs text-gray-500">
-              Current status: {schedulerStatus?.enabled ? 'Enabled' : 'Disabled'} | 
-              Interval: Every {schedulerStatus?.interval_minutes || 5} minutes
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Hash className="w-5 h-5 text-purple-600" />
-                <h2 className="text-lg font-semibold">Slack Notifications</h2>
-              </div>
-              {slackSettings?.configured && (
-                <span className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Connected
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Receive instant notifications in Slack when new tickets arrive, urgent issues are detected, or tickets are processed by AI.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Webhook URL</label>
-                <input
-                  type="password"
-                  placeholder={slackSettings?.configured ? '********' : 'https://hooks.slack.com/services/...'}
-                  value={slackForm.webhook_url}
-                  onChange={(e) => setSlackForm({ ...slackForm, webhook_url: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Create a webhook in your Slack workspace and paste the URL here.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Notification Triggers</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={slackForm.notify_on_new}
-                      onChange={(e) => setSlackForm({ ...slackForm, notify_on_new: e.target.checked })}
-                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm text-gray-700">Notify on new tickets</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={slackForm.notify_on_urgent}
-                      onChange={(e) => setSlackForm({ ...slackForm, notify_on_urgent: e.target.checked })}
-                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm text-gray-700">Notify on urgent tickets</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={slackForm.notify_on_process}
-                      onChange={(e) => setSlackForm({ ...slackForm, notify_on_process: e.target.checked })}
-                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <span className="text-sm text-gray-700">Notify when AI processes tickets</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 mt-4">
-              <button
-                onClick={() => updateSlackMutation.mutate({
-                  webhook_url: slackForm.webhook_url,
-                  notify_on_new: slackForm.notify_on_new,
-                  notify_on_urgent: slackForm.notify_on_urgent,
-                  notify_on_process: slackForm.notify_on_process
-                })}
-                disabled={updateSlackMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {updateSlackMutation.isPending ? 'Saving...' : 'Save Slack Settings'}
-              </button>
-              <button
-                onClick={() => testSlackMutation.mutate()}
-                disabled={testSlackMutation.isPending || !slackSettings?.configured}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-              >
-                <TestTube2 className="w-4 h-4" />
-                {testSlackMutation.isPending ? 'Testing...' : 'Test Slack'}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-orange-600" />
-                <h2 className="text-lg font-semibold">Email Notifications</h2>
-              </div>
-              {emailNotificationSettings?.enabled && (
-                <span className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Active
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Send email alerts to team members when urgent tickets are received or SLA deadlines are breached.
-            </p>
-            <div className="space-y-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={emailNotificationForm.enabled}
-                  onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, enabled: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700">Enable email notifications</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={emailNotificationForm.urgent_only}
-                  onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, urgent_only: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700">Only notify for urgent tickets</span>
-              </label>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recipients</label>
-                <select
-                  value={emailNotificationForm.recipients}
-                  onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, recipients: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="all">All active team members</option>
-                  <option value="none">No recipients (disabled)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Notifications will be sent to all active team members' email addresses.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 mt-4">
-              <button
-                onClick={() => updateEmailNotificationMutation.mutate({
-                  enabled: emailNotificationForm.enabled,
-                  urgent_only: emailNotificationForm.urgent_only,
-                  recipients: emailNotificationForm.recipients
-                })}
-                disabled={updateEmailNotificationMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {updateEmailNotificationMutation.isPending ? 'Saving...' : 'Save Email Settings'}
-              </button>
-              <button
-                onClick={() => testEmailNotificationMutation.mutate()}
-                disabled={testEmailNotificationMutation.isPending || !emailNotificationSettings?.enabled}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-              >
-                <TestTube2 className="w-4 h-4" />
-                {testEmailNotificationMutation.isPending ? 'Testing...' : 'Test Email'}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Mail className="w-5 h-5 text-blue-600" />
-              Auto-Responder
-            </h2>
-            <div className="space-y-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoResponderForm.enabled}
-                  onChange={(e) => setAutoResponderForm({ ...autoResponderForm, enabled: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-700">Enable auto-responder for new tickets</span>
-              </label>
-              <p className="text-sm text-gray-500">
-                When enabled, customers will receive an automatic acknowledgment email when their ticket is received.
-              </p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Response Template
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Use {'{ticket_id}'} for ticket number and {'{subject}'} for the original subject line.
-                </p>
-                <textarea
-                  value={autoResponderForm.template}
-                  onChange={(e) => setAutoResponderForm({ ...autoResponderForm, template: e.target.value })}
-                  className="w-full h-48 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono text-sm"
-                />
-              </div>
-              <button
-                onClick={() => updateAutoResponderMutation.mutate({
-                  enabled: autoResponderForm.enabled,
-                  template: autoResponderForm.template
-                })}
-                disabled={updateAutoResponderMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {updateAutoResponderMutation.isPending ? 'Saving...' : 'Save Auto-Responder Settings'}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-600" />
-              Team Members
-            </h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h3 className="font-medium text-gray-900">
-                  {editingMemberId ? 'Edit Team Member' : 'Add Team Member'}
-                </h3>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={teamMemberForm.name}
-                    onChange={(e) => setTeamMemberForm({ ...teamMemberForm, name: e.target.value })}
-                    placeholder="e.g., John Smith"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={teamMemberForm.email}
-                    onChange={(e) => setTeamMemberForm({ ...teamMemberForm, email: e.target.value })}
-                    placeholder="e.g., john@infinitywork.com"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                  <select
-                    value={teamMemberForm.role}
-                    onChange={(e) => setTeamMemberForm({ ...teamMemberForm, role: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="agent">Agent</option>
-                    <option value="supervisor">Supervisor</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleSaveTeamMember}
-                    disabled={!teamMemberForm.name || !teamMemberForm.email || createTeamMemberMutation.isPending || updateTeamMemberMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    {editingMemberId ? 'Update' : 'Add'} Member
-                  </button>
-                  {editingMemberId && (
-                    <button
-                      onClick={handleCancelMemberEdit}
-                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Current Team ({teamMembers.length})</h3>
-                {teamMembers.length === 0 ? (
-                  <p className="text-sm text-gray-500">No team members added yet.</p>
-                ) : (
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {teamMembers.map((member) => (
-                      <div key={member.id} className={`p-3 border rounded-lg flex items-center justify-between ${!member.is_active ? 'opacity-50 bg-gray-50' : ''}`}>
-                        <div>
-                          <div className="font-medium text-sm">{member.name}</div>
-                          <div className="text-xs text-gray-500">{member.email}</div>
-                          <span className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">{member.role}</span>
+          <div className="flex gap-6">
+            <div className="w-72 flex-shrink-0">
+              <div className="enterprise-card p-4 sticky top-28">
+                <nav className="space-y-6">
+                  {groups.map((group) => {
+                    const GroupIcon = group.icon
+                    const groupSections = settingsSections.filter(s => s.group === group.name)
+                    return (
+                      <div key={group.name}>
+                        <div className="flex items-center gap-2 px-3 mb-2">
+                          <GroupIcon className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{group.name}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEditTeamMember(member)}
-                            className="p-1.5 text-gray-500 hover:bg-gray-200 rounded"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => updateTeamMemberMutation.mutate({ id: member.id, data: { is_active: !member.is_active } })}
-                            className={`p-1.5 rounded ${member.is_active ? 'text-yellow-600 hover:bg-yellow-50' : 'text-green-600 hover:bg-green-50'}`}
-                            title={member.is_active ? 'Deactivate' : 'Activate'}
-                          >
-                            {member.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => deleteTeamMemberMutation.mutate(member.id)}
-                            disabled={deleteTeamMemberMutation.isPending}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <div className="space-y-1">
+                          {groupSections.map((section) => {
+                            const SectionIcon = section.icon
+                            const isActive = activeSettingsSection === section.id
+                            return (
+                              <button
+                                key={section.id}
+                                onClick={() => setActiveSettingsSection(section.id)}
+                                className={`w-full sidebar-item ${isActive ? 'active' : ''}`}
+                              >
+                                <SectionIcon className="w-5 h-5" />
+                                <div className="text-left">
+                                  <div className="text-sm font-medium">{section.name}</div>
+                                  {!isActive && <div className="text-xs opacity-60">{section.description}</div>}
+                                </div>
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
-                    ))}
+                    )
+                  })}
+                </nav>
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-6">
+              {activeSettingsSection === 'imap' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Inbox className="w-5 h-5 text-cyan-600" />
+                    <span>IMAP Settings</span>
+                    <span className="text-xs text-gray-500 font-normal ml-auto">Incoming Email Configuration</span>
                   </div>
-                )}
-              </div>
+                  <div className="detail-section-content">
+                    <p className="text-sm text-gray-600 mb-6">Configure the IMAP server connection to fetch incoming support emails. Use app-specific passwords for Gmail.</p>
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">IMAP Host</label>
+                        <input
+                          type="text"
+                          placeholder={currentSettings?.imap_host || "imap.gmail.com"}
+                          value={settingsForm.imap_host ?? ''}
+                          onChange={(e) => handleSettingsChange('imap_host', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">IMAP Port</label>
+                        <input
+                          type="text"
+                          placeholder={currentSettings?.imap_port || "993"}
+                          value={settingsForm.imap_port ?? ''}
+                          onChange={(e) => handleSettingsChange('imap_port', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input
+                          type="text"
+                          placeholder={currentSettings?.imap_username || "your-email@gmail.com"}
+                          value={settingsForm.imap_username ?? ''}
+                          onChange={(e) => handleSettingsChange('imap_username', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input
+                          type="password"
+                          placeholder="App password"
+                          value={settingsForm.imap_password ?? ''}
+                          onChange={(e) => handleSettingsChange('imap_password', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleSaveSettings}
+                        disabled={saveSettingsMutation.isPending || Object.keys(settingsForm).length === 0}
+                        className="enterprise-btn enterprise-btn-primary"
+                      >
+                        <Save className="w-4 h-4" />
+                        {saveSettingsMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button
+                        onClick={() => testImapMutation.mutate()}
+                        disabled={testImapMutation.isPending}
+                        className="enterprise-btn enterprise-btn-secondary"
+                      >
+                        <TestTube2 className="w-4 h-4" />
+                        {testImapMutation.isPending ? 'Testing...' : 'Test Connection'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'smtp' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Send className="w-5 h-5 text-blue-600" />
+                    <span>SMTP Settings</span>
+                    <span className="text-xs text-gray-500 font-normal ml-auto">Outgoing Email Configuration</span>
+                  </div>
+                  <div className="detail-section-content">
+                    <p className="text-sm text-gray-600 mb-6">Configure the SMTP server to send email responses to customers. Make sure to use a valid sender email address.</p>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Host</label>
+                        <input
+                          type="text"
+                          placeholder={currentSettings?.smtp_host || "smtp.gmail.com"}
+                          value={settingsForm.smtp_host ?? ''}
+                          onChange={(e) => handleSettingsChange('smtp_host', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Port</label>
+                        <input
+                          type="text"
+                          placeholder={currentSettings?.smtp_port || "587"}
+                          value={settingsForm.smtp_port ?? ''}
+                          onChange={(e) => handleSettingsChange('smtp_port', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input
+                          type="text"
+                          placeholder={currentSettings?.smtp_username || "your-email@gmail.com"}
+                          value={settingsForm.smtp_username ?? ''}
+                          onChange={(e) => handleSettingsChange('smtp_username', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input
+                          type="password"
+                          placeholder="App password"
+                          value={settingsForm.smtp_password ?? ''}
+                          onChange={(e) => handleSettingsChange('smtp_password', e.target.value)}
+                          className="enterprise-input"
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">From Email Address</label>
+                      <input
+                        type="text"
+                        placeholder={currentSettings?.smtp_from_email || "support@infinityworkitsolutions.com"}
+                        value={settingsForm.smtp_from_email ?? ''}
+                        onChange={(e) => handleSettingsChange('smtp_from_email', e.target.value)}
+                        className="enterprise-input"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">This email will appear as the sender for all outgoing responses.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleSaveSettings}
+                        disabled={saveSettingsMutation.isPending || Object.keys(settingsForm).length === 0}
+                        className="enterprise-btn enterprise-btn-primary"
+                      >
+                        <Save className="w-4 h-4" />
+                        {saveSettingsMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button
+                        onClick={() => testSmtpMutation.mutate()}
+                        disabled={testSmtpMutation.isPending}
+                        className="enterprise-btn enterprise-btn-secondary"
+                      >
+                        <TestTube2 className="w-4 h-4" />
+                        {testSmtpMutation.isPending ? 'Testing...' : 'Test Connection'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'scheduler' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Clock className="w-5 h-5 text-cyan-600" />
+                    <span>Auto-Fetch Scheduler</span>
+                    {schedulerStatus?.running && (
+                      <span className="ml-auto flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        Running
+                      </span>
+                    )}
+                  </div>
+                  <div className="detail-section-content">
+                    <p className="text-sm text-gray-600 mb-6">
+                      Automatically fetch new emails at regular intervals. When enabled, the system will check for new emails periodically without manual intervention.
+                    </p>
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                      <div className="enterprise-card p-5">
+                        <label className="block text-sm font-semibold text-gray-700 mb-3">Scheduler Status</label>
+                        <button
+                          onClick={() => updateSchedulerMutation.mutate({ 
+                            enabled: !schedulerStatus?.enabled, 
+                            interval: schedulerStatus?.interval_minutes || 5 
+                          })}
+                          disabled={updateSchedulerMutation.isPending}
+                          className={`w-full enterprise-btn ${
+                            schedulerStatus?.enabled 
+                              ? 'enterprise-btn-danger' 
+                              : 'enterprise-btn-success'
+                          }`}
+                        >
+                          {schedulerStatus?.enabled ? (
+                            <>
+                              <Pause className="w-4 h-4" />
+                              {updateSchedulerMutation.isPending ? 'Stopping...' : 'Stop Scheduler'}
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4" />
+                              {updateSchedulerMutation.isPending ? 'Starting...' : 'Start Scheduler'}
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="enterprise-card p-5">
+                        <label className="block text-sm font-semibold text-gray-700 mb-3">Check Interval</label>
+                        <select
+                          value={schedulerStatus?.interval_minutes || 5}
+                          onChange={(e) => {
+                            const newInterval = parseInt(e.target.value)
+                            updateSchedulerMutation.mutate({ 
+                              enabled: schedulerStatus?.enabled || false, 
+                              interval: newInterval 
+                            })
+                          }}
+                          className="enterprise-select"
+                        >
+                          <option value={1}>Every 1 minute</option>
+                          <option value={2}>Every 2 minutes</option>
+                          <option value={5}>Every 5 minutes</option>
+                          <option value={10}>Every 10 minutes</option>
+                          <option value={15}>Every 15 minutes</option>
+                          <option value={30}>Every 30 minutes</option>
+                          <option value={60}>Every 60 minutes</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                        <RefreshCw className="w-5 h-5 text-cyan-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Current Configuration</div>
+                        <div className="text-xs text-gray-500">
+                          Status: <span className={schedulerStatus?.enabled ? 'text-green-600 font-medium' : 'text-gray-600'}>{schedulerStatus?.enabled ? 'Enabled' : 'Disabled'}</span> | 
+                          Interval: Every {schedulerStatus?.interval_minutes || 5} minutes
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'autoresponder' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Mail className="w-5 h-5 text-blue-600" />
+                    <span>Auto-Responder</span>
+                    {autoResponderSettings?.enabled && (
+                      <span className="ml-auto flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="detail-section-content">
+                    <p className="text-sm text-gray-600 mb-6">
+                      Automatically send acknowledgment emails when new tickets are received. This helps customers know their request has been logged.
+                    </p>
+                    <div className="mb-6">
+                      <label className="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={autoResponderForm.enabled}
+                          onChange={(e) => setAutoResponderForm({ ...autoResponderForm, enabled: e.target.checked })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Enable auto-responder for new tickets</span>
+                          <p className="text-xs text-gray-500 mt-0.5">Customers will receive an automatic acknowledgment email</p>
+                        </div>
+                      </label>
+                    </div>
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Response Template</label>
+                      <p className="text-xs text-gray-500 mb-3">
+                        Use <code className="bg-gray-100 px-1.5 py-0.5 rounded text-cyan-600">{'{ticket_id}'}</code> for ticket number and <code className="bg-gray-100 px-1.5 py-0.5 rounded text-cyan-600">{'{subject}'}</code> for the original subject line.
+                      </p>
+                      <textarea
+                        value={autoResponderForm.template}
+                        onChange={(e) => setAutoResponderForm({ ...autoResponderForm, template: e.target.value })}
+                        className="enterprise-input h-48 font-mono text-sm"
+                        placeholder="Dear Customer,&#10;&#10;Thank you for contacting InfinityWork IT Solutions...&#10;&#10;Your ticket #{ticket_id} has been received..."
+                      />
+                    </div>
+                    <button
+                      onClick={() => updateAutoResponderMutation.mutate({
+                        enabled: autoResponderForm.enabled,
+                        template: autoResponderForm.template
+                      })}
+                      disabled={updateAutoResponderMutation.isPending}
+                      className="enterprise-btn enterprise-btn-primary"
+                    >
+                      <Save className="w-4 h-4" />
+                      {updateAutoResponderMutation.isPending ? 'Saving...' : 'Save Auto-Responder Settings'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'email-notify' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Bell className="w-5 h-5 text-orange-600" />
+                    <span>Email Notifications</span>
+                    {emailNotificationSettings?.enabled && (
+                      <span className="ml-auto flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="detail-section-content">
+                    <p className="text-sm text-gray-600 mb-6">
+                      Send email alerts to team members when urgent tickets are received or SLA deadlines are breached.
+                    </p>
+                    <div className="space-y-4 mb-6">
+                      <label className="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={emailNotificationForm.enabled}
+                          onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, enabled: e.target.checked })}
+                          className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Enable email notifications</span>
+                          <p className="text-xs text-gray-500 mt-0.5">Team members will receive email alerts</p>
+                        </div>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={emailNotificationForm.urgent_only}
+                          onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, urgent_only: e.target.checked })}
+                          className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Only notify for urgent tickets</span>
+                          <p className="text-xs text-gray-500 mt-0.5">Reduce noise by only alerting on high-priority issues</p>
+                        </div>
+                      </label>
+                    </div>
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Recipients</label>
+                      <select
+                        value={emailNotificationForm.recipients}
+                        onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, recipients: e.target.value })}
+                        className="enterprise-select"
+                      >
+                        <option value="all">All active team members</option>
+                        <option value="none">No recipients (disabled)</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Notifications will be sent to all active team members' email addresses.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => updateEmailNotificationMutation.mutate({
+                          enabled: emailNotificationForm.enabled,
+                          urgent_only: emailNotificationForm.urgent_only,
+                          recipients: emailNotificationForm.recipients
+                        })}
+                        disabled={updateEmailNotificationMutation.isPending}
+                        className="enterprise-btn enterprise-btn-primary"
+                      >
+                        <Save className="w-4 h-4" />
+                        {updateEmailNotificationMutation.isPending ? 'Saving...' : 'Save Email Settings'}
+                      </button>
+                      <button
+                        onClick={() => testEmailNotificationMutation.mutate()}
+                        disabled={testEmailNotificationMutation.isPending || !emailNotificationSettings?.enabled}
+                        className="enterprise-btn enterprise-btn-secondary"
+                      >
+                        <TestTube2 className="w-4 h-4" />
+                        {testEmailNotificationMutation.isPending ? 'Testing...' : 'Send Test Email'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'slack' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Hash className="w-5 h-5 text-purple-600" />
+                    <span>Slack Notifications</span>
+                    {slackSettings?.configured && (
+                      <span className="ml-auto flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        Connected
+                      </span>
+                    )}
+                  </div>
+                  <div className="detail-section-content">
+                    <p className="text-sm text-gray-600 mb-6">
+                      Receive instant notifications in Slack when new tickets arrive, urgent issues are detected, or tickets are processed by AI.
+                    </p>
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Webhook URL</label>
+                      <input
+                        type="password"
+                        placeholder={slackSettings?.configured ? '••••••••••••••••' : 'https://hooks.slack.com/services/...'}
+                        value={slackForm.webhook_url}
+                        onChange={(e) => setSlackForm({ ...slackForm, webhook_url: e.target.value })}
+                        className="enterprise-input"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Create a webhook in your Slack workspace and paste the URL here.
+                      </p>
+                    </div>
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">Notification Triggers</label>
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={slackForm.notify_on_new}
+                            onChange={(e) => setSlackForm({ ...slackForm, notify_on_new: e.target.checked })}
+                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Notify on new tickets</span>
+                            <p className="text-xs text-gray-500">Get notified when a new support ticket arrives</p>
+                          </div>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={slackForm.notify_on_urgent}
+                            onChange={(e) => setSlackForm({ ...slackForm, notify_on_urgent: e.target.checked })}
+                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Notify on urgent tickets</span>
+                            <p className="text-xs text-gray-500">Get alerts for high-priority issues that need immediate attention</p>
+                          </div>
+                        </label>
+                        <label className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={slackForm.notify_on_process}
+                            onChange={(e) => setSlackForm({ ...slackForm, notify_on_process: e.target.checked })}
+                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Notify when AI processes tickets</span>
+                            <p className="text-xs text-gray-500">Get updates when tickets are analyzed and categorized</p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => updateSlackMutation.mutate({
+                          webhook_url: slackForm.webhook_url,
+                          notify_on_new: slackForm.notify_on_new,
+                          notify_on_urgent: slackForm.notify_on_urgent,
+                          notify_on_process: slackForm.notify_on_process
+                        })}
+                        disabled={updateSlackMutation.isPending}
+                        className="enterprise-btn enterprise-btn-primary"
+                      >
+                        <Save className="w-4 h-4" />
+                        {updateSlackMutation.isPending ? 'Saving...' : 'Save Slack Settings'}
+                      </button>
+                      <button
+                        onClick={() => testSlackMutation.mutate()}
+                        disabled={testSlackMutation.isPending || !slackSettings?.configured}
+                        className="enterprise-btn enterprise-btn-secondary"
+                      >
+                        <TestTube2 className="w-4 h-4" />
+                        {testSlackMutation.isPending ? 'Testing...' : 'Send Test Message'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'sla' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Timer className="w-5 h-5 text-orange-600" />
+                    <span>SLA Settings</span>
+                    <span className="text-xs text-gray-500 font-normal ml-auto">Service Level Agreement Configuration</span>
+                  </div>
+                  <div className="detail-section-content">
+                    <p className="text-sm text-gray-600 mb-6">
+                      Configure response time deadlines for different ticket urgency levels. Tickets exceeding these times will be marked as SLA breached and highlighted in the priority queue.
+                    </p>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="enterprise-card p-5 border-l-4 border-red-500">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <span className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                            High Urgency
+                          </span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="72"
+                            value={slaSettingsForm.high_hours}
+                            onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, high_hours: parseInt(e.target.value) || 4 })}
+                            className="enterprise-input"
+                          />
+                          <span className="text-sm text-gray-500">hours</span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">Default: 4 hours</p>
+                      </div>
+                      <div className="enterprise-card p-5 border-l-4 border-amber-500">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <span className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-amber-500" />
+                            Medium Urgency
+                          </span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="72"
+                            value={slaSettingsForm.medium_hours}
+                            onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, medium_hours: parseInt(e.target.value) || 8 })}
+                            className="enterprise-input"
+                          />
+                          <span className="text-sm text-gray-500">hours</span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">Default: 8 hours</p>
+                      </div>
+                      <div className="enterprise-card p-5 border-l-4 border-green-500">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <span className="flex items-center gap-2">
+                            <Target className="w-4 h-4 text-green-500" />
+                            Low Urgency
+                          </span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="72"
+                            value={slaSettingsForm.low_hours}
+                            onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, low_hours: parseInt(e.target.value) || 24 })}
+                            className="enterprise-input"
+                          />
+                          <span className="text-sm text-gray-500">hours</span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">Default: 24 hours</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => updateSlaMutation.mutate(slaSettingsForm)}
+                      disabled={updateSlaMutation.isPending}
+                      className="enterprise-btn enterprise-btn-primary"
+                    >
+                      <Save className="w-4 h-4" />
+                      {updateSlaMutation.isPending ? 'Saving...' : 'Save SLA Settings'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSettingsSection === 'team' && (
+                <div className="detail-section animate-fade-in">
+                  <div className="detail-section-header">
+                    <Users className="w-5 h-5 text-indigo-600" />
+                    <span>Team Members</span>
+                    <span className="text-xs text-gray-500 font-normal ml-auto">{teamMembers.length} team member{teamMembers.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="detail-section-content">
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-6 border border-indigo-100">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                          <UserPlus className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-indigo-900">How to Add Users</h4>
+                          <p className="text-xs text-indigo-700 mt-1">
+                            Fill in the form below to add new team members. They will be able to receive ticket assignments and email notifications. 
+                            Use the role field to designate permissions: <strong>Agent</strong> for standard support, <strong>Supervisor</strong> for team leads, or <strong>Admin</strong> for full access.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="enterprise-card p-5">
+                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          {editingMemberId ? <Edit2 className="w-4 h-4 text-indigo-600" /> : <UserPlus className="w-4 h-4 text-indigo-600" />}
+                          {editingMemberId ? 'Edit Team Member' : 'Add New Team Member'}
+                        </h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                            <input
+                              type="text"
+                              value={teamMemberForm.name}
+                              onChange={(e) => setTeamMemberForm({ ...teamMemberForm, name: e.target.value })}
+                              placeholder="e.g., John Smith"
+                              className="enterprise-input"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <input
+                              type="email"
+                              value={teamMemberForm.email}
+                              onChange={(e) => setTeamMemberForm({ ...teamMemberForm, email: e.target.value })}
+                              placeholder="e.g., john@infinitywork.com"
+                              className="enterprise-input"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                            <select
+                              value={teamMemberForm.role}
+                              onChange={(e) => setTeamMemberForm({ ...teamMemberForm, role: e.target.value })}
+                              className="enterprise-select"
+                            >
+                              <option value="agent">Agent - Handle support tickets</option>
+                              <option value="supervisor">Supervisor - Team management</option>
+                              <option value="admin">Admin - Full system access</option>
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-2 pt-2">
+                            <button
+                              onClick={handleSaveTeamMember}
+                              disabled={!teamMemberForm.name || !teamMemberForm.email || createTeamMemberMutation.isPending || updateTeamMemberMutation.isPending}
+                              className="enterprise-btn enterprise-btn-primary flex-1"
+                            >
+                              <UserPlus className="w-4 h-4" />
+                              {editingMemberId ? 'Update Member' : 'Add Member'}
+                            </button>
+                            {editingMemberId && (
+                              <button
+                                onClick={handleCancelMemberEdit}
+                                className="enterprise-btn enterprise-btn-secondary"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Users className="w-4 h-4 text-gray-500" />
+                          Current Team ({teamMembers.length})
+                        </h3>
+                        {teamMembers.length === 0 ? (
+                          <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                            <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                            <p className="text-sm text-gray-500">No team members added yet.</p>
+                            <p className="text-xs text-gray-400 mt-1">Add your first team member using the form.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin pr-2">
+                            {teamMembers.map((member) => (
+                              <div key={member.id} className={`enterprise-card p-4 flex items-center justify-between ${!member.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                                    member.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' :
+                                    member.role === 'supervisor' ? 'bg-gradient-to-br from-blue-500 to-cyan-600' :
+                                    'bg-gradient-to-br from-gray-400 to-gray-500'
+                                  }`}>
+                                    {member.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-sm text-gray-900">{member.name}</div>
+                                    <div className="text-xs text-gray-500">{member.email}</div>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                      member.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                      member.role === 'supervisor' ? 'bg-blue-100 text-blue-700' :
+                                      'bg-gray-100 text-gray-700'
+                                    }`}>{member.role}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleEditTeamMember(member)}
+                                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                                    title="Edit"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => updateTeamMemberMutation.mutate({ id: member.id, data: { is_active: !member.is_active } })}
+                                    className={`p-2 rounded-lg transition-colors ${member.is_active ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'}`}
+                                    title={member.is_active ? 'Deactivate' : 'Activate'}
+                                  >
+                                    {member.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                  </button>
+                                  <button
+                                    onClick={() => deleteTeamMemberMutation.mutate(member.id)}
+                                    disabled={deleteTeamMemberMutation.isPending}
+                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Timer className="w-5 h-5 text-orange-600" />
-              SLA Settings
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Configure response time deadlines for different ticket urgency levels. Tickets exceeding these times will be marked as SLA breached.
-            </p>
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  High Urgency (hours)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="72"
-                  value={slaSettingsForm.high_hours}
-                  onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, high_hours: parseInt(e.target.value) || 4 })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <p className="text-xs text-gray-400 mt-1">Default: 4 hours</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Medium Urgency (hours)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="72"
-                  value={slaSettingsForm.medium_hours}
-                  onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, medium_hours: parseInt(e.target.value) || 8 })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <p className="text-xs text-gray-400 mt-1">Default: 8 hours</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Low Urgency (hours)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="72"
-                  value={slaSettingsForm.low_hours}
-                  onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, low_hours: parseInt(e.target.value) || 24 })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <p className="text-xs text-gray-400 mt-1">Default: 24 hours</p>
-              </div>
-            </div>
-            <button
-              onClick={() => updateSlaMutation.mutate(slaSettingsForm)}
-              disabled={updateSlaMutation.isPending}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {updateSlaMutation.isPending ? 'Saving...' : 'Save SLA Settings'}
-            </button>
-          </div>
-
-          <button
-            onClick={handleSaveSettings}
-            disabled={saveSettingsMutation.isPending || Object.keys(settingsForm).length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-          >
-            <Save className="w-5 h-5" />
-            {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
-          </button>
         </div>
       </div>
     )
