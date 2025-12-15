@@ -1,70 +1,64 @@
 import { useState, useEffect } from 'react'
 import { LogIn, Lock, User, Loader2 } from 'lucide-react'
 import companyLogo from '../assets/company-logo.png'
+import aiBgImage from '@assets/image_1765797199880.png'
 
 interface LoginProps {
   onLogin: (username: string) => void
 }
 
-function ParticleBackground() {
+function AnimatedBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {[...Array(20)].map((_, i) => (
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"></div>
+      
+      <div 
+        className="absolute inset-0 animate-bg-zoom"
+        style={{
+          backgroundImage: `url(${aiBgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity: 0.6,
+        }}
+      />
+      
+      <div 
+        className="absolute inset-0 animate-bg-pan"
+        style={{
+          backgroundImage: `url(${aiBgImage})`,
+          backgroundSize: '120%',
+          backgroundPosition: 'center',
+          opacity: 0.3,
+          mixBlendMode: 'screen',
+        }}
+      />
+      
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/80"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60"></div>
+      
+      {[...Array(15)].map((_, i) => (
         <div
           key={i}
-          className="absolute rounded-full bg-cyan-400/20 animate-particle"
+          className="absolute rounded-full bg-cyan-400/30 animate-particle"
           style={{
-            width: `${Math.random() * 10 + 5}px`,
-            height: `${Math.random() * 10 + 5}px`,
+            width: `${Math.random() * 6 + 3}px`,
+            height: `${Math.random() * 6 + 3}px`,
             left: `${Math.random() * 100}%`,
             animationDelay: `${Math.random() * 15}s`,
-            animationDuration: `${Math.random() * 10 + 10}s`,
-          }}
-        />
-      ))}
-      
-      {[...Array(6)].map((_, i) => (
-        <div
-          key={`orb-${i}`}
-          className="absolute rounded-full animate-float-slow"
-          style={{
-            width: `${Math.random() * 300 + 200}px`,
-            height: `${Math.random() * 300 + 200}px`,
-            background: `radial-gradient(circle, ${i % 2 === 0 ? 'rgba(6, 182, 212, 0.1)' : 'rgba(59, 130, 246, 0.08)'} 0%, transparent 70%)`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${i * 2}s`,
-            filter: 'blur(40px)',
+            animationDuration: `${Math.random() * 10 + 15}s`,
           }}
         />
       ))}
       
       <div 
-        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full animate-pulse-glow"
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full animate-pulse-glow"
         style={{
-          background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
-          filter: 'blur(60px)',
-        }}
-      />
-      <div 
-        className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full animate-pulse-glow"
-        style={{
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%)',
-          filter: 'blur(60px)',
-          animationDelay: '1.5s',
+          background: 'radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, rgba(6, 182, 212, 0.1) 40%, transparent 70%)',
+          filter: 'blur(80px)',
         }}
       />
       
-      <div className="absolute inset-0">
-        <svg className="w-full h-full opacity-10">
-          <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-      </div>
+      <div className="absolute inset-0 animate-scanline opacity-10"></div>
     </div>
   )
 }
@@ -114,7 +108,7 @@ export default function Login({ onLogin }: LoginProps) {
   if (showSplash) {
     return (
       <div className="min-h-screen login-bg flex items-center justify-center relative overflow-hidden">
-        <ParticleBackground />
+        <AnimatedBackground />
         
         <div className="text-center animate-fade-in relative z-10">
           <div className="relative mb-8">
@@ -148,7 +142,7 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="min-h-screen login-bg flex items-center justify-center p-4 relative overflow-hidden">
-      <ParticleBackground />
+      <AnimatedBackground />
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8 animate-fade-in">

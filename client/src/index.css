@@ -110,6 +110,24 @@ body {
   100% { transform: scale(1.5); opacity: 0; }
 }
 
+@keyframes bg-zoom {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes bg-pan {
+  0% { background-position: center top; }
+  25% { background-position: left center; }
+  50% { background-position: center bottom; }
+  75% { background-position: right center; }
+  100% { background-position: center top; }
+}
+
+@keyframes scanline {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
+
 .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
 .animate-slide-up { animation: slide-up 0.6s ease-out 0.3s forwards; opacity: 0; }
 .animate-slide-up-delay { animation: slide-up 0.6s ease-out 0.5s forwards; opacity: 0; }
@@ -122,6 +140,18 @@ body {
 .animate-particle { animation: particle-rise 15s linear infinite; }
 .animate-orbit { animation: orbit 20s linear infinite; }
 .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); background-size: 200% 100%; animation: shimmer 2s linear infinite; }
+.animate-bg-zoom { animation: bg-zoom 20s ease-in-out infinite; }
+.animate-bg-pan { animation: bg-pan 30s ease-in-out infinite; }
+.animate-scanline { 
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(6, 182, 212, 0.03) 2px,
+    rgba(6, 182, 212, 0.03) 4px
+  );
+  animation: scanline 8s linear infinite;
+}
 
 .login-bg {
   background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 25%, #0f172a 50%, #1a365d 75%, #0f172a 100%);
