@@ -196,6 +196,8 @@ async def google_callback(
     first_name = userinfo.get("given_name", "")
     last_name = userinfo.get("family_name", "")
     profile_image = userinfo.get("picture", "")
+    if profile_image and len(profile_image) > 500:
+        profile_image = profile_image[:500]
     
     user = db.query(User).filter(User.google_id == google_id).first()
     
