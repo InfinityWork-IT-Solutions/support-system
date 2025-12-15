@@ -64,6 +64,10 @@ class Ticket(Base):
     assigned_to = Column(Integer, ForeignKey("team_members.id"), nullable=True)
     assigned_at = Column(DateTime, nullable=True)
     
+    sla_deadline = Column(DateTime, nullable=True, index=True)
+    sla_breached = Column(Boolean, default=False)
+    priority_score = Column(Integer, default=0, index=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

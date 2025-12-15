@@ -15,6 +15,7 @@ from app.services.ai_service import process_ticket
 from app.services.approval_service import approve_ticket, reject_ticket, send_approved_response
 from app.services.slack_service import notify_new_ticket, notify_urgent_ticket, notify_ticket_processed
 from app.services.auto_responder_service import send_acknowledgment
+from app.services.sla_service import update_ticket_sla, get_priority_queue, get_sla_summary, update_all_sla_status
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -48,6 +49,9 @@ class TicketResponse(BaseModel):
     assigned_to: Optional[int]
     assigned_at: Optional[datetime]
     assignee: Optional[AssigneeResponse]
+    sla_deadline: Optional[datetime]
+    sla_breached: bool
+    priority_score: int
     created_at: datetime
     updated_at: datetime
 
@@ -452,6 +456,8 @@ def process_single_ticket(ticket_id: int, db: Session = Depends(get_db)):
         ticket.ai_processed = True
         db.commit()
         
+        update_ticket_sla(db, ticket)
+        
         notify_on_urgent = db.query(Settings).filter(Settings.key == "slack_notify_on_urgent").first()
         if ticket.urgency == "High" and (not notify_on_urgent or notify_on_urgent.value != "false"):
             notify_urgent_ticket(db, ticket)
@@ -580,3 +586,57 @@ def assign_ticket(ticket_id: int, request: AssignTicketRequest, db: Session = De
     db.commit()
     db.refresh(ticket)
     return {"status": "assigned", "assigned_to": ticket.assigned_to}
+
+
+@router.get("/sla/summary")
+def get_sla_stats(db: Session = Depends(get_db)):
+    return get_sla_summary(db)
+
+
+@router.get("/sla/priority-queue", response_model=List[TicketResponse])
+def get_tickets_priority_queue(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)):
+    tickets = get_priority_queue(db, limit)
+    return tickets
+
+
+@router.post("/sla/refresh")
+def refresh_sla_status(db: Session = Depends(get_db)):
+    result = update_all_sla_status(db)
+    return result
+
+
+class SlaSettingsRequest(BaseModel):
+    high_hours: int
+    medium_hours: int
+    low_hours: int
+
+
+@router.get("/sla/settings")
+def get_sla_settings(db: Session = Depends(get_db)):
+    settings = db.query(Settings).filter(
+        Settings.key.in_(["sla_hours_high", "sla_hours_medium", "sla_hours_low"])
+    ).all()
+    settings_dict = {s.key: s.value for s in settings}
+    
+    return {
+        "high_hours": int(settings_dict.get("sla_hours_high", 4)),
+        "medium_hours": int(settings_dict.get("sla_hours_medium", 8)),
+        "low_hours": int(settings_dict.get("sla_hours_low", 24))
+    }
+
+
+@router.post("/sla/settings")
+def update_sla_settings(request: SlaSettingsRequest, db: Session = Depends(get_db)):
+    for key, value in [
+        ("sla_hours_high", request.high_hours),
+        ("sla_hours_medium", request.medium_hours),
+        ("sla_hours_low", request.low_hours)
+    ]:
+        setting = db.query(Settings).filter(Settings.key == key).first()
+        if setting:
+            setting.value = str(value)
+        else:
+            db.add(Settings(key=key, value=str(value)))
+    
+    db.commit()
+    return {"status": "updated"}

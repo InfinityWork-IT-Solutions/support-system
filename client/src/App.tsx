@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings, TeamMember } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings, TeamMember, SlaSummary, SlaSettings } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -31,7 +31,10 @@ import {
   Star,
   User,
   Users,
-  UserPlus
+  UserPlus,
+  AlertTriangle,
+  Timer,
+  Target
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 
@@ -85,6 +88,16 @@ function App() {
     role: 'agent'
   })
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
+  const [showPriorityQueue, setShowPriorityQueue] = useState(false)
+  const [slaSettingsForm, setSlaSettingsForm] = useState<{
+    high_hours: number;
+    medium_hours: number;
+    low_hours: number;
+  }>({
+    high_hours: 4,
+    medium_hours: 8,
+    low_hours: 24
+  })
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -189,6 +202,24 @@ function App() {
   const { data: activeTeamMembers = [] } = useQuery({
     queryKey: ['activeTeamMembers'],
     queryFn: () => api.getTeamMembers(true),
+  })
+
+  const { data: slaSummary } = useQuery({
+    queryKey: ['slaSummary'],
+    queryFn: api.getSlaSummary,
+    enabled: !showSettings,
+  })
+
+  const { data: priorityQueue = [] } = useQuery({
+    queryKey: ['priorityQueue'],
+    queryFn: () => api.getPriorityQueue(20),
+    enabled: showPriorityQueue,
+  })
+
+  const { data: slaSettings } = useQuery({
+    queryKey: ['slaSettings'],
+    queryFn: api.getSlaSettings,
+    enabled: showSettings,
   })
 
   useEffect(() => {
@@ -427,6 +458,32 @@ function App() {
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
     },
   })
+
+  const updateSlaMutation = useMutation({
+    mutationFn: (settings: SlaSettings) => api.updateSlaSettings(settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slaSettings'] })
+    },
+  })
+
+  const refreshSlaMutation = useMutation({
+    mutationFn: () => api.refreshSlaStatus(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slaSummary'] })
+      queryClient.invalidateQueries({ queryKey: ['priorityQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    },
+  })
+
+  useEffect(() => {
+    if (slaSettings) {
+      setSlaSettingsForm({
+        high_hours: slaSettings.high_hours,
+        medium_hours: slaSettings.medium_hours,
+        low_hours: slaSettings.low_hours
+      })
+    }
+  }, [slaSettings])
 
   const getUrgencyColor = (urgency: string | null) => {
     switch (urgency) {
@@ -1633,6 +1690,68 @@ function App() {
             </div>
           </div>
 
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Timer className="w-5 h-5 text-orange-600" />
+              SLA Settings
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Configure response time deadlines for different ticket urgency levels. Tickets exceeding these times will be marked as SLA breached.
+            </p>
+            <div className="grid grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  High Urgency (hours)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="72"
+                  value={slaSettingsForm.high_hours}
+                  onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, high_hours: parseInt(e.target.value) || 4 })}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Default: 4 hours</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Medium Urgency (hours)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="72"
+                  value={slaSettingsForm.medium_hours}
+                  onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, medium_hours: parseInt(e.target.value) || 8 })}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Default: 8 hours</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Low Urgency (hours)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="72"
+                  value={slaSettingsForm.low_hours}
+                  onChange={(e) => setSlaSettingsForm({ ...slaSettingsForm, low_hours: parseInt(e.target.value) || 24 })}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Default: 24 hours</p>
+              </div>
+            </div>
+            <button
+              onClick={() => updateSlaMutation.mutate(slaSettingsForm)}
+              disabled={updateSlaMutation.isPending}
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              {updateSlaMutation.isPending ? 'Saving...' : 'Save SLA Settings'}
+            </button>
+          </div>
+
           <button
             onClick={handleSaveSettings}
             disabled={saveSettingsMutation.isPending || Object.keys(settingsForm).length === 0}
@@ -1744,6 +1863,55 @@ function App() {
           </div>
         </div>
 
+        {slaSummary && (
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-green-600" />
+                <div>
+                  <div className="text-2xl font-bold text-green-600">{slaSummary.on_track}</div>
+                  <div className="text-sm text-gray-500">On Track</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-yellow-500">
+              <div className="flex items-center gap-2">
+                <Timer className="w-5 h-5 text-yellow-600" />
+                <div>
+                  <div className="text-2xl font-bold text-yellow-600">{slaSummary.at_risk}</div>
+                  <div className="text-sm text-gray-500">At Risk (&lt;2h)</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-red-500">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div>
+                  <div className="text-2xl font-bold text-red-600">{slaSummary.breached}</div>
+                  <div className="text-sm text-gray-500">SLA Breached</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-500">Active Tickets</div>
+                  <div className="text-lg font-semibold">{slaSummary.total_active}</div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPriorityQueue(!showPriorityQueue)
+                    setSelectedTicketId(null)
+                  }}
+                  className={`px-3 py-1 text-sm rounded-lg ${showPriorityQueue ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                >
+                  Priority Queue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
@@ -1850,12 +2018,24 @@ function App() {
               )}
             </div>
             <div className="max-h-[600px] overflow-y-auto">
+              {showPriorityQueue && (
+                <div className="bg-primary-50 p-3 border-b flex items-center justify-between">
+                  <span className="font-medium text-primary-700">Priority Queue (sorted by urgency)</span>
+                  <button
+                    onClick={() => refreshSlaMutation.mutate()}
+                    disabled={refreshSlaMutation.isPending}
+                    className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                  >
+                    {refreshSlaMutation.isPending ? 'Refreshing...' : 'Refresh SLA'}
+                  </button>
+                </div>
+              )}
               {ticketsLoading ? (
                 <div className="p-4 text-center text-gray-500">Loading...</div>
-              ) : tickets.length === 0 ? (
+              ) : (showPriorityQueue ? priorityQueue : tickets).length === 0 ? (
                 <div className="p-4 text-center text-gray-500">No tickets found</div>
               ) : (
-                tickets.map((ticket) => (
+                (showPriorityQueue ? priorityQueue : tickets).map((ticket) => (
                   <div
                     key={ticket.id}
                     onClick={() => handleSelectTicket(ticket)}
@@ -1889,6 +2069,18 @@ function App() {
                       {ticket.urgency && (
                         <span className={`px-2 py-0.5 text-xs rounded-full ${getUrgencyColor(ticket.urgency)}`}>
                           {ticket.urgency}
+                        </span>
+                      )}
+                      {ticket.sla_breached && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          SLA Breached
+                        </span>
+                      )}
+                      {!ticket.sla_breached && ticket.sla_deadline && new Date(ticket.sla_deadline) < new Date(Date.now() + 2 * 60 * 60 * 1000) && !ticket.sent_at && (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                          <Timer className="w-3 h-3" />
+                          At Risk
                         </span>
                       )}
                       {ticket.category && (
