@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, Template } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, Template, SchedulerStatus } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -21,7 +21,10 @@ import {
   FileText,
   Plus,
   Trash2,
-  Edit2
+  Edit2,
+  Clock,
+  Play,
+  Pause
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
@@ -43,6 +46,8 @@ function App() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [templateForm, setTemplateForm] = useState<{ name: string; category: string; content: string }>({ name: '', category: '', content: '' })
   const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null)
+  const [schedulerEnabled, setSchedulerEnabled] = useState(false)
+  const [schedulerInterval, setSchedulerInterval] = useState(5)
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -77,6 +82,12 @@ function App() {
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
     queryFn: () => api.getTemplates(),
+  })
+
+  const { data: schedulerStatus, refetch: refetchScheduler } = useQuery({
+    queryKey: ['scheduler'],
+    queryFn: api.getScheduler,
+    enabled: showSettings,
   })
 
   const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899']
@@ -203,6 +214,14 @@ function App() {
     mutationFn: api.deleteTemplate,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] })
+    },
+  })
+
+  const updateSchedulerMutation = useMutation({
+    mutationFn: ({ enabled, interval }: { enabled: boolean; interval: number }) => 
+      api.updateScheduler(enabled, interval),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduler'] })
     },
   })
 
@@ -709,6 +728,83 @@ function App() {
                 onChange={(e) => handleSettingsChange('openai_api_key', e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-primary-600" />
+                <h2 className="text-lg font-semibold">Auto-Fetch Scheduler</h2>
+              </div>
+              {schedulerStatus?.running && (
+                <span className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Running
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Automatically fetch new emails at regular intervals. When enabled, the system will check for new emails periodically.
+            </p>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateSchedulerMutation.mutate({ 
+                      enabled: !schedulerStatus?.enabled, 
+                      interval: schedulerStatus?.interval_minutes || 5 
+                    })}
+                    disabled={updateSchedulerMutation.isPending}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                      schedulerStatus?.enabled 
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
+                  >
+                    {schedulerStatus?.enabled ? (
+                      <>
+                        <Pause className="w-4 h-4" />
+                        {updateSchedulerMutation.isPending ? 'Stopping...' : 'Stop Scheduler'}
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4" />
+                        {updateSchedulerMutation.isPending ? 'Starting...' : 'Start Scheduler'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Interval (minutes)</label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={schedulerStatus?.interval_minutes || 5}
+                    onChange={(e) => {
+                      const newInterval = parseInt(e.target.value)
+                      updateSchedulerMutation.mutate({ 
+                        enabled: schedulerStatus?.enabled || false, 
+                        interval: newInterval 
+                      })
+                    }}
+                    className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value={1}>1 minute</option>
+                    <option value={2}>2 minutes</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={60}>60 minutes</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-gray-500">
+              Current status: {schedulerStatus?.enabled ? 'Enabled' : 'Disabled'} | 
+              Interval: Every {schedulerStatus?.interval_minutes || 5} minutes
             </div>
           </div>
 

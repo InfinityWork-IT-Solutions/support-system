@@ -5,13 +5,16 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import Settings
+from app.services.scheduler_service import (
+    start_scheduler, stop_scheduler, get_scheduler_status, update_scheduler_interval
+)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 SETTING_KEYS = [
     "imap_host", "imap_port", "imap_username", "imap_password",
     "smtp_host", "smtp_port", "smtp_username", "smtp_password", "smtp_from_email",
-    "openai_api_key"
+    "openai_api_key", "scheduler_enabled", "scheduler_interval_minutes"
 ]
 
 
@@ -99,3 +102,49 @@ def test_smtp_connection(db: Session = Depends(get_db)):
         return {"success": True, "message": "SMTP connection successful"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+class SchedulerUpdate(BaseModel):
+    enabled: bool
+    interval_minutes: int = 5
+
+
+@router.get("/scheduler")
+def get_scheduler(db: Session = Depends(get_db)):
+    enabled = get_setting(db, "scheduler_enabled") == "true"
+    interval = int(get_setting(db, "scheduler_interval_minutes") or "5")
+    status = get_scheduler_status()
+    return {
+        "enabled": enabled,
+        "interval_minutes": interval,
+        "running": status["running"]
+    }
+
+
+@router.post("/scheduler")
+def update_scheduler(request: SchedulerUpdate, db: Session = Depends(get_db)):
+    set_setting(db, "scheduler_enabled", "true" if request.enabled else "false")
+    set_setting(db, "scheduler_interval_minutes", str(request.interval_minutes))
+    
+    if request.enabled:
+        stop_scheduler()
+        start_scheduler(request.interval_minutes)
+    else:
+        stop_scheduler()
+    
+    return {"status": "updated", "enabled": request.enabled, "interval_minutes": request.interval_minutes}
+
+
+@router.post("/scheduler/start")
+def start_scheduler_endpoint(db: Session = Depends(get_db)):
+    interval = int(get_setting(db, "scheduler_interval_minutes") or "5")
+    set_setting(db, "scheduler_enabled", "true")
+    start_scheduler(interval)
+    return {"status": "started", "interval_minutes": interval}
+
+
+@router.post("/scheduler/stop")
+def stop_scheduler_endpoint(db: Session = Depends(get_db)):
+    set_setting(db, "scheduler_enabled", "false")
+    stop_scheduler()
+    return {"status": "stopped"}

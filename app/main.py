@@ -1,18 +1,39 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
 from app.routes import tickets, settings, templates
+from app.models import Settings as SettingsModel
+from app.services.scheduler_service import start_scheduler
 
 Base.metadata.create_all(bind=engine)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = SessionLocal()
+    try:
+        scheduler_enabled = db.query(SettingsModel).filter(SettingsModel.key == "scheduler_enabled").first()
+        scheduler_interval = db.query(SettingsModel).filter(SettingsModel.key == "scheduler_interval_minutes").first()
+        
+        if scheduler_enabled and scheduler_enabled.value == "true":
+            interval = int(scheduler_interval.value) if scheduler_interval else 5
+            start_scheduler(interval)
+            print(f"[Startup] Auto-fetch scheduler started with {interval} minute interval")
+    finally:
+        db.close()
+    
+    yield
 
 app = FastAPI(
     title="AI Support Desk",
     description="AI-powered email support ticket system for InfinityWork IT Solutions",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
