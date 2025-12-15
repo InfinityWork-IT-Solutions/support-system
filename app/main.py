@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.database import engine, Base, SessionLocal
-from app.routes import tickets, settings, templates, knowledge, surveys, team, views
+from app.routes import tickets, settings, templates, knowledge, surveys, team, views, auth
 from app.models import Settings as SettingsModel
 from app.services.scheduler_service import start_scheduler
 
@@ -44,6 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(tickets.router)
 app.include_router(settings.router)
 app.include_router(templates.router)

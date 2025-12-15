@@ -39,11 +39,36 @@ import {
   Plus,
   X,
   Filter,
-  Bell
+  Bell,
+  LogOut
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
+import Login from './components/Login'
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return !!localStorage.getItem('auth_user')
+  })
+  const [currentUser, setCurrentUser] = useState<string>(() => {
+    const user = localStorage.getItem('auth_user')
+    return user ? JSON.parse(user).name : ''
+  })
+
+  const handleLogin = (username: string) => {
+    setIsAuthenticated(true)
+    setCurrentUser(username)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_user')
+    setIsAuthenticated(false)
+    setCurrentUser('')
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />
+  }
+
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   const [showSettings, setShowSettings] = useState(false)
@@ -2028,6 +2053,21 @@ function App() {
               >
                 <Settings className="w-5 h-5" />
               </button>
+              <div className="h-6 w-px bg-gray-300 mx-1"></div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <User className="w-4 h-4" />
+                  <span>{currentUser}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
