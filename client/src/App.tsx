@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -27,7 +27,8 @@ import {
   Hash,
   BookOpen,
   Lightbulb,
-  Download
+  Download,
+  Star
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 
@@ -104,6 +105,12 @@ function App() {
   const { data: volumeTrends } = useQuery({
     queryKey: ['volumeTrends'],
     queryFn: () => api.getVolumeTrends(30),
+    enabled: showAnalytics,
+  })
+
+  const { data: surveyStats } = useQuery({
+    queryKey: ['surveyStats'],
+    queryFn: api.getSurveyStats,
     enabled: showAnalytics,
   })
 
@@ -951,6 +958,70 @@ function App() {
               </div>
             </div>
           )}
+
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-5 h-5 text-yellow-500" />
+              <h2 className="text-lg font-semibold">Customer Satisfaction</h2>
+            </div>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-3xl font-bold text-yellow-600">
+                  {surveyStats?.average_rating ? surveyStats.average_rating.toFixed(1) : '0.0'}
+                </div>
+                <div className="text-sm text-gray-600">Avg. Rating</div>
+                <div className="flex items-center justify-center gap-0.5 mt-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-3 h-3 ${
+                        star <= (surveyStats?.average_rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-3xl font-bold text-blue-600">{surveyStats?.total_sent || 0}</div>
+                <div className="text-sm text-gray-600">Surveys Sent</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-3xl font-bold text-green-600">{surveyStats?.total_completed || 0}</div>
+                <div className="text-sm text-gray-600">Responses</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-3xl font-bold text-purple-600">{surveyStats?.response_rate || 0}%</div>
+                <div className="text-sm text-gray-600">Response Rate</div>
+              </div>
+            </div>
+            {surveyStats?.rating_distribution && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Rating Distribution</h3>
+                <div className="space-y-2">
+                  {[5, 4, 3, 2, 1].map((rating) => {
+                    const count = surveyStats.rating_distribution[String(rating)] || 0;
+                    const total = surveyStats.total_completed || 1;
+                    const percentage = Math.round((count / total) * 100);
+                    return (
+                      <div key={rating} className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 w-16">
+                          <span className="text-sm font-medium">{rating}</span>
+                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                        </div>
+                        <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-yellow-400 rounded-full transition-all"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-500 w-12 text-right">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )

@@ -109,3 +109,20 @@ class KnowledgeArticle(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SatisfactionSurvey(Base):
+    __tablename__ = "satisfaction_surveys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
+    
+    rating = Column(Integer, nullable=False)
+    feedback = Column(Text, nullable=True)
+    customer_email = Column(String(255), nullable=False, index=True)
+    
+    survey_token = Column(String(100), unique=True, nullable=False, index=True)
+    sent_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
