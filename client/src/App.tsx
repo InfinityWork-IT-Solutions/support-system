@@ -2136,45 +2136,62 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
 
         {slaSummary && (
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-green-600" />
+            <div className="enterprise-card p-4 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-50 rounded-xl flex items-center justify-center">
+                  <Target className="w-6 h-6 text-green-600" />
+                </div>
                 <div>
                   <div className="text-2xl font-bold text-green-600">{slaSummary.on_track}</div>
-                  <div className="text-sm text-gray-500">On Track</div>
+                  <div className="text-sm font-medium text-gray-500">On Track</div>
                 </div>
               </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-emerald-500"></div>
             </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-yellow-500">
-              <div className="flex items-center gap-2">
-                <Timer className="w-5 h-5 text-yellow-600" />
+            <div className="enterprise-card p-4 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-yellow-50 rounded-xl flex items-center justify-center">
+                  <Timer className="w-6 h-6 text-amber-600" />
+                </div>
                 <div>
-                  <div className="text-2xl font-bold text-yellow-600">{slaSummary.at_risk}</div>
-                  <div className="text-sm text-gray-500">At Risk (&lt;2h)</div>
+                  <div className="text-2xl font-bold text-amber-600">{slaSummary.at_risk}</div>
+                  <div className="text-sm font-medium text-gray-500">At Risk (&lt;2h)</div>
                 </div>
               </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-yellow-500"></div>
             </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-red-500">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="enterprise-card p-4 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-rose-50 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
                 <div>
                   <div className="text-2xl font-bold text-red-600">{slaSummary.breached}</div>
-                  <div className="text-sm text-gray-500">SLA Breached</div>
+                  <div className="text-sm font-medium text-gray-500">SLA Breached</div>
                 </div>
               </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-rose-500"></div>
             </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
+            <div className="enterprise-card p-4 relative overflow-hidden">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-gray-500">Active Tickets</div>
-                  <div className="text-lg font-semibold">{slaSummary.total_active}</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-slate-100 to-gray-50 rounded-xl flex items-center justify-center">
+                    <Inbox className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-gray-900">{slaSummary.total_active}</div>
+                    <div className="text-xs font-medium text-gray-500">Active Tickets</div>
+                  </div>
                 </div>
                 <button
                   onClick={() => {
                     setShowPriorityQueue(!showPriorityQueue)
                     setSelectedTicketId(null)
                   }}
-                  className={`px-3 py-1 text-sm rounded-lg ${showPriorityQueue ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  className={`enterprise-btn text-sm ${showPriorityQueue ? 'enterprise-btn-primary' : 'enterprise-btn-secondary'}`}
                 >
                   Priority Queue
                 </button>
@@ -2183,44 +2200,44 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-sm mb-4 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Quick Filters:</span>
+        <div className="enterprise-card mb-5 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-100 to-blue-50 rounded-lg flex items-center justify-center">
+                <Filter className="w-4 h-4 text-cyan-600" />
+              </div>
+              <span className="text-sm font-semibold text-gray-700">Quick Filters</span>
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               {quickFilters.map((qf) => (
                 <button
                   key={qf.id}
                   onClick={() => applyQuickFilter(qf)}
-                  className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                    activeQuickFilter === qf.id
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`quick-filter-btn ${activeQuickFilter === qf.id ? 'active' : ''}`}
                 >
                   {qf.name}
                 </button>
               ))}
             </div>
-            <div className="border-l border-gray-300 h-6 mx-2" />
-            <Bookmark className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Saved:</span>
+            <div className="h-8 w-px bg-gray-200 mx-3"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-100 to-purple-50 rounded-lg flex items-center justify-center">
+                <Bookmark className="w-4 h-4 text-violet-600" />
+              </div>
+              <span className="text-sm font-semibold text-gray-700">Saved Views</span>
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               {savedViews.map((sv) => (
                 <div key={sv.id} className="flex items-center gap-1">
                   <button
                     onClick={() => applySavedView(sv)}
-                    className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                      activeSavedView === sv.id
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                    }`}
+                    className={`quick-filter-btn ${activeSavedView === sv.id ? 'active' : ''}`}
                   >
                     {sv.name}
                   </button>
                   <button
                     onClick={() => deleteSavedViewMutation.mutate(sv.id)}
-                    className="p-0.5 text-gray-400 hover:text-red-500"
+                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                     title="Delete view"
                   >
                     <X className="w-3 h-3" />
@@ -2229,7 +2246,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
               ))}
               <button
                 onClick={() => setShowSaveViewModal(true)}
-                className="px-2 py-1 text-sm rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 flex items-center gap-1"
+                className="quick-filter-btn flex items-center gap-1"
                 title="Save current filters as view"
               >
                 <Plus className="w-3 h-3" />
@@ -2239,19 +2256,19 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
           </div>
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by email or subject..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="enterprise-input pl-11"
               />
             </div>
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="enterprise-select w-auto"
             >
               <option value="">All Status</option>
               <option value="PENDING">Pending</option>
@@ -2261,7 +2278,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
             <select
               value={filters.category}
               onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-              className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="enterprise-select w-auto"
             >
               <option value="">All Categories</option>
               <option value="Technical">Technical</option>
@@ -2274,7 +2291,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
             <select
               value={filters.urgency}
               onChange={(e) => setFilters({ ...filters, urgency: e.target.value })}
-              className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="enterprise-select w-auto"
             >
               <option value="">All Urgency</option>
               <option value="High">High</option>
@@ -2342,45 +2359,48 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
         )}
 
         <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-1 bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50">
+          <div className="col-span-1 enterprise-card overflow-hidden">
+            <div className="p-4 border-b bg-gradient-to-r from-slate-50 to-gray-50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={toggleSelectAll}
-                    className="p-1 hover:bg-gray-200 rounded"
+                    className="p-1.5 hover:bg-white rounded-lg transition-colors"
                     title={selectedTicketIds.size === tickets.length ? 'Deselect all' : 'Select all'}
                   >
                     {selectedTicketIds.size === tickets.length && tickets.length > 0 ? (
-                      <CheckSquare className="w-4 h-4 text-primary-600" />
+                      <CheckSquare className="w-5 h-5 text-cyan-600" />
                     ) : (
-                      <Square className="w-4 h-4 text-gray-400" />
+                      <Square className="w-5 h-5 text-gray-400" />
                     )}
                   </button>
-                  <h2 className="font-semibold text-gray-900">Tickets ({tickets.length})</h2>
+                  <div>
+                    <h2 className="font-semibold text-gray-900">Tickets</h2>
+                    <span className="text-xs text-gray-500">{tickets.length} total</span>
+                  </div>
                 </div>
                 {selectedTicketIds.size > 0 && (
-                  <span className="text-xs text-primary-600 font-medium">{selectedTicketIds.size} selected</span>
+                  <span className="px-2 py-1 text-xs font-semibold text-cyan-700 bg-cyan-100 rounded-full">{selectedTicketIds.size} selected</span>
                 )}
               </div>
               {selectedTicketIds.size > 0 && (
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200">
                   {getSelectedPendingIds().length > 0 && (
                     <>
                       <button
                         onClick={() => bulkApproveMutation.mutate(getSelectedPendingIds())}
                         disabled={bulkApproveMutation.isPending}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                        className="enterprise-btn enterprise-btn-success text-xs py-1.5 px-3"
                       >
-                        <CheckCircle className="w-3 h-3" />
+                        <CheckCircle className="w-3.5 h-3.5" />
                         Approve ({getSelectedPendingIds().length})
                       </button>
                       <button
                         onClick={() => bulkRejectMutation.mutate(getSelectedPendingIds())}
                         disabled={bulkRejectMutation.isPending}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                        className="enterprise-btn enterprise-btn-danger text-xs py-1.5 px-3"
                       >
-                        <XCircle className="w-3 h-3" />
+                        <XCircle className="w-3.5 h-3.5" />
                         Reject ({getSelectedPendingIds().length})
                       </button>
                     </>
@@ -2389,88 +2409,102 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                     <button
                       onClick={() => bulkSendMutation.mutate(getSelectedApprovedIds())}
                       disabled={bulkSendMutation.isPending}
-                      className="flex items-center gap-1 px-2 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
+                      className="enterprise-btn enterprise-btn-primary text-xs py-1.5 px-3"
                     >
-                      <Send className="w-3 h-3" />
+                      <Send className="w-3.5 h-3.5" />
                       Send ({getSelectedApprovedIds().length})
                     </button>
                   )}
                 </div>
               )}
             </div>
-            <div className="max-h-[600px] overflow-y-auto">
+            <div className="max-h-[600px] overflow-y-auto scrollbar-thin">
               {showPriorityQueue && (
-                <div className="bg-primary-50 p-3 border-b flex items-center justify-between">
-                  <span className="font-medium text-primary-700">Priority Queue (sorted by urgency)</span>
+                <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 border-b flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-cyan-600" />
+                    <span className="font-medium text-cyan-800">Priority Queue</span>
+                  </div>
                   <button
                     onClick={() => refreshSlaMutation.mutate()}
                     disabled={refreshSlaMutation.isPending}
-                    className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                    className="enterprise-btn enterprise-btn-secondary text-xs py-1 px-3"
                   >
                     {refreshSlaMutation.isPending ? 'Refreshing...' : 'Refresh SLA'}
                   </button>
                 </div>
               )}
               {ticketsLoading ? (
-                <div className="p-4 text-center text-gray-500">Loading...</div>
+                <div className="p-8 text-center">
+                  <RefreshCw className="w-8 h-8 text-gray-300 mx-auto mb-3 animate-spin" />
+                  <p className="text-gray-500">Loading tickets...</p>
+                </div>
               ) : (showPriorityQueue ? priorityQueue : tickets).length === 0 ? (
-                <div className="p-4 text-center text-gray-500">No tickets found</div>
+                <div className="p-8 text-center">
+                  <Inbox className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">No tickets found</p>
+                  <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
+                </div>
               ) : (
                 (showPriorityQueue ? priorityQueue : tickets).map((ticket) => (
                   <div
                     key={ticket.id}
                     onClick={() => handleSelectTicket(ticket)}
-                    className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                      selectedTicketId === ticket.id ? 'bg-primary-50 border-l-4 border-l-primary-600' : ''
-                    }`}
+                    className={`ticket-item mx-3 my-2 ${selectedTicketId === ticket.id ? 'selected' : ''}`}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <button
                           onClick={(e) => toggleTicketSelection(ticket.id, e)}
-                          className="p-0.5 hover:bg-gray-200 rounded flex-shrink-0"
+                          className="p-1 hover:bg-gray-100 rounded-lg flex-shrink-0 transition-colors"
                         >
                           {selectedTicketIds.has(ticket.id) ? (
-                            <CheckSquare className="w-4 h-4 text-primary-600" />
+                            <CheckSquare className="w-4 h-4 text-cyan-600" />
                           ) : (
                             <Square className="w-4 h-4 text-gray-400" />
                           )}
                         </button>
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {ticket.sender_email}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 bg-gradient-to-br from-slate-100 to-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="w-4 h-4 text-gray-500" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {ticket.sender_email}
+                          </span>
+                        </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <ChevronRight className={`w-5 h-5 flex-shrink-0 transition-colors ${selectedTicketId === ticket.id ? 'text-cyan-500' : 'text-gray-300'}`} />
                     </div>
-                    <div className="text-sm text-gray-700 truncate mb-2">{ticket.subject}</div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusColor(ticket.approval_status)}`}>
+                    <div className="text-sm text-gray-700 truncate mb-3 pl-7 font-medium">{ticket.subject}</div>
+                    <div className="flex items-center gap-2 flex-wrap pl-7">
+                      <span className={`status-badge status-${ticket.approval_status.toLowerCase()}`}>
                         {ticket.approval_status}
                       </span>
                       {ticket.urgency && (
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${getUrgencyColor(ticket.urgency)}`}>
+                        <span className={`urgency-badge urgency-${ticket.urgency.toLowerCase()}`}>
                           {ticket.urgency}
                         </span>
                       )}
                       {ticket.sla_breached && (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 flex items-center gap-1">
+                        <span className="sla-indicator sla-breach text-xs py-0.5 px-2">
                           <AlertTriangle className="w-3 h-3" />
-                          SLA Breached
+                          Breached
                         </span>
                       )}
                       {!ticket.sla_breached && ticket.sla_deadline && new Date(ticket.sla_deadline) < new Date(Date.now() + 2 * 60 * 60 * 1000) && !ticket.sent_at && (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                        <span className="sla-indicator sla-warning text-xs py-0.5 px-2">
                           <Timer className="w-3 h-3" />
                           At Risk
                         </span>
                       )}
                       {ticket.category && (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-600 font-medium">
                           {ticket.category}
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-400 mt-2">
+                    <div className="text-xs text-gray-400 mt-3 pl-7 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
                       {new Date(ticket.received_at).toLocaleString()}
                     </div>
                   </div>
@@ -2479,41 +2513,53 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
             </div>
           </div>
 
-          <div className="col-span-2 bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="col-span-2 enterprise-card overflow-hidden">
             {!selectedTicketId ? (
-              <div className="flex items-center justify-center h-[600px] text-gray-500">
+              <div className="flex items-center justify-center h-[600px]">
                 <div className="text-center">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>Select a ticket to view details</p>
+                  <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-gray-50 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                    <MessageSquare className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 font-medium">Select a ticket to view details</p>
+                  <p className="text-gray-400 text-sm mt-1">Click on a ticket from the list</p>
                 </div>
               </div>
             ) : ticketLoading ? (
-              <div className="flex items-center justify-center h-[600px] text-gray-500">Loading...</div>
+              <div className="flex items-center justify-center h-[600px]">
+                <RefreshCw className="w-8 h-8 text-cyan-500 animate-spin" />
+              </div>
             ) : selectedTicket ? (
-              <div className="h-[600px] overflow-y-auto">
-                <div className="p-6 border-b bg-gray-50">
+              <div className="h-[600px] overflow-y-auto scrollbar-thin">
+                <div className="p-6 border-b bg-gradient-to-r from-slate-50 to-gray-50">
                   <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-900">{selectedTicket.subject}</h2>
-                      <p className="text-sm text-gray-500">From: {selectedTicket.sender_email}</p>
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-6 h-6 text-cyan-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-gray-900">{selectedTicket.subject}</h2>
+                        <p className="text-sm text-gray-500 mt-1">From: <span className="font-medium text-gray-700">{selectedTicket.sender_email}</span></p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(selectedTicket.approval_status)}`}>
+                      <span className={`status-badge status-${selectedTicket.approval_status.toLowerCase()}`}>
                         {selectedTicket.approval_status}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-4 p-3 bg-white rounded-xl border border-gray-100">
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">Assigned to:</span>
+                      <div className="w-8 h-8 bg-gradient-to-br from-violet-100 to-purple-50 rounded-lg flex items-center justify-center">
+                        <Users className="w-4 h-4 text-violet-600" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">Assigned to:</span>
                     </div>
                     <select
                       value={selectedTicket.assigned_to?.toString() || ''}
                       onChange={(e) => handleAssignTicket(e.target.value)}
                       disabled={assignTicketMutation.isPending}
-                      className="px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="enterprise-select w-auto text-sm py-1.5"
                     >
                       <option value="">Unassigned</option>
                       {activeTeamMembers.map((member) => (
