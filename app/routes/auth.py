@@ -30,12 +30,10 @@ import os
 import httpx
 import secrets
 from urllib.parse import urlencode
-from passlib.context import CryptContext
+import bcrypt
 
 from app.database import get_db
 from app.models import Settings, User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create a router for all authentication endpoints
 # All routes in this file will be prefixed with /api/auth
@@ -283,7 +281,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    hashed = pwd_context.hash(request.password)
+    hashed = bcrypt.hashpw(request.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     user = User(
         email=request.email,
@@ -338,7 +336,7 @@ def email_login(request: EmailLoginRequest, db: Session = Depends(get_db)):
     if not user or not user.password_hash:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    if not pwd_context.verify(request.password, user.password_hash):
+    if not bcrypt.checkpw(request.password.encode('utf-8'), user.password_hash.encode('utf-8')):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     if not user.is_active:
