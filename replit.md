@@ -1,50 +1,73 @@
-# AI Support Desk - InfinityWork IT Solutions
+# AI Support Desk
 
 ## Overview
-An AI-powered email support ticket system that automates customer support workflows while maintaining human oversight through an approval system.
 
-## Architecture
+AI Support Desk is an enterprise-grade, AI-powered email support ticket management system designed for InfinityWork IT Solutions. The system automates email ingestion from IMAP inboxes, uses OpenAI to classify, summarize, and draft responses to support tickets, and requires explicit human approval before sending any responses to customers.
 
-### Backend (FastAPI)
-- **Location**: `app/`
-- **Main entry**: `app/main.py`
-- **Services**:
-  - `app/services/imap_service.py` - Email ingestion via IMAP
-  - `app/services/ai_service.py` - OpenAI-powered ticket processing
-  - `app/services/smtp_service.py` - Email sending via SMTP
-  - `app/services/approval_service.py` - Human approval workflow
-- **Routes**: `app/routes/tickets.py` - All ticket-related API endpoints
+Key capabilities:
+- Automated email fetching from IMAP servers
+- AI-powered ticket classification, urgency assessment, and summarization
+- Draft response generation with human approval workflow
+- SMTP integration for sending approved responses
+- Conversation threading and ticket management dashboard
 
-### Frontend (React + Vite)
-- **Location**: `client/`
-- **Tech**: React 18, Tailwind CSS, React Query, Lucide Icons
-- **Main entry**: `client/src/main.tsx`
+## User Preferences
 
-### Database
-- PostgreSQL with SQLAlchemy ORM
-- Models: `Ticket`, `TicketMessage`
-- Connection via `DATABASE_URL` environment variable
+Preferred communication style: Simple, everyday language.
 
-## Key Features
-1. Email ingestion from IMAP inbox
-2. AI-powered ticket classification and response drafting
-3. Human approval workflow (approve/reject)
-4. Conversation threading
-5. Search and filtering
+## System Architecture
 
-## Environment Variables Required
-- `DATABASE_URL` - PostgreSQL connection string (auto-configured)
-- `OPENAI_API_KEY` - For AI processing
+### Backend (Python/FastAPI)
+- **Framework**: FastAPI with Uvicorn server running on port 8000
+- **Database**: PostgreSQL with SQLAlchemy ORM
+- **ORM Pattern**: Declarative base with session-based dependency injection via `get_db()`
+- **API Structure**: RESTful routes under `/api/` prefix, organized in `app/routes/`
+
+### Frontend (React/TypeScript)
+- **Framework**: React 18 with TypeScript, built using Vite
+- **Styling**: Tailwind CSS with custom primary color palette
+- **State Management**: TanStack React Query for server state
+- **Development**: Runs on port 5000 with proxy to backend API
+- **Build Output**: Compiled to `client/dist/`, served by FastAPI in production
+
+### Service Layer
+- **Email Ingestion**: `imap_service.py` - Fetches unread emails via IMAP
+- **AI Processing**: `ai_service.py` - OpenAI integration for ticket analysis
+- **Approval Workflow**: `approval_service.py` - Human approval before sending
+- **Email Sending**: `smtp_service.py` - SMTP integration for responses
+
+### Data Models
+- **Ticket**: Main entity with sender, subject, AI-generated fields (category, urgency, summary, fix_steps, draft_response), and approval status
+- **TicketMessage**: Individual messages in conversation threads
+- **Settings**: Key-value store for runtime configuration (email credentials, API keys)
+
+### Approval Workflow
+Critical design decision: No automated sending. All AI-generated responses require explicit human approval through the dashboard before being sent to customers.
+
+## External Dependencies
+
+### Required Services
+- **PostgreSQL**: Primary database (DATABASE_URL environment variable required)
+- **OpenAI API**: GPT integration for ticket processing (OPENAI_API_KEY)
+- **IMAP Server**: Email ingestion (configurable via settings or environment)
+- **SMTP Server**: Email sending (configurable via settings or environment)
+
+### Environment Variables
+- `DATABASE_URL` - PostgreSQL connection string (required)
+- `SESSION_SECRET` - Session encryption key
+- `OPENAI_API_KEY` - OpenAI API authentication
 - `IMAP_HOST`, `IMAP_PORT`, `IMAP_USERNAME`, `IMAP_PASSWORD` - Email ingestion
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` - Email sending
 
-## Running the Application
-- Backend runs on port 8000
-- Frontend (Vite dev server) runs on port 5000
-- Frontend proxies `/api` requests to backend
+### Python Dependencies
+- FastAPI, Uvicorn (web framework)
+- SQLAlchemy (database ORM)
+- OpenAI (AI processing)
+- imaplib, smtplib (email protocols - standard library)
 
-## Workflow
-1. Fetch emails (IMAP) -> Creates tickets
-2. Process with AI -> Generates category, urgency, summary, draft response
-3. Human review -> Approve or reject draft
-4. Send response (SMTP) -> Only after approval
+### Frontend Dependencies
+- React, React DOM
+- TanStack React Query
+- React Router DOM
+- Lucide React (icons)
+- Tailwind CSS, PostCSS, Autoprefixer
