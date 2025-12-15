@@ -58,3 +58,8 @@ externalPort = 3001
 [[ports]]
 localPort = 8000
 externalPort = 8000
+
+[userenv]
+
+[userenv.shared]
+GOOGLE_REDIRECT_URI = "https://c985be41-086c-437f-aedf-7efc0791f4c7-00-ntdtb6wmzevr.kirk.replit.dev/api/auth/google/callback"

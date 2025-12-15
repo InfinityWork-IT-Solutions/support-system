@@ -103,13 +103,17 @@ async def google_login(request: Request):
     state = secrets.token_urlsafe(32)
     oauth_states[state] = datetime.utcnow()
     
-    replit_domain = os.environ.get("REPLIT_DEV_DOMAIN", "")
-    if replit_domain:
-        redirect_uri = f"https://{replit_domain}/api/auth/google/callback"
+    custom_redirect = os.environ.get("GOOGLE_REDIRECT_URI", "")
+    if custom_redirect:
+        redirect_uri = custom_redirect
     else:
-        host = request.headers.get("host", "")
-        scheme = "https" if "replit" in host else request.url.scheme
-        redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
+        replit_domain = os.environ.get("REPLIT_DEV_DOMAIN", "")
+        if replit_domain:
+            redirect_uri = f"https://{replit_domain}/api/auth/google/callback"
+        else:
+            host = request.headers.get("host", "")
+            scheme = "https" if "replit" in host else request.url.scheme
+            redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     
     params = {
         "client_id": GOOGLE_CLIENT_ID,
@@ -147,13 +151,17 @@ async def google_callback(
     
     del oauth_states[state]
     
-    replit_domain = os.environ.get("REPLIT_DEV_DOMAIN", "")
-    if replit_domain:
-        redirect_uri = f"https://{replit_domain}/api/auth/google/callback"
+    custom_redirect = os.environ.get("GOOGLE_REDIRECT_URI", "")
+    if custom_redirect:
+        redirect_uri = custom_redirect
     else:
-        host = request.headers.get("host", "")
-        scheme = "https" if "replit" in host else request.url.scheme
-        redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
+        replit_domain = os.environ.get("REPLIT_DEV_DOMAIN", "")
+        if replit_domain:
+            redirect_uri = f"https://{replit_domain}/api/auth/google/callback"
+        else:
+            host = request.headers.get("host", "")
+            scheme = "https" if "replit" in host else request.url.scheme
+            redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     
     async with httpx.AsyncClient() as client:
         token_response = await client.post(
