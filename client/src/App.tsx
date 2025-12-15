@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -66,6 +66,13 @@ function App() {
   const [knowledgeForm, setKnowledgeForm] = useState<{ title: string; category: string; keywords: string; content: string }>({ title: '', category: '', keywords: '', content: '' })
   const [editingArticleId, setEditingArticleId] = useState<number | null>(null)
   const [knowledgeSearch, setKnowledgeSearch] = useState('')
+  const [autoResponderForm, setAutoResponderForm] = useState<{
+    enabled: boolean;
+    template: string;
+  }>({
+    enabled: false,
+    template: ''
+  })
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -132,6 +139,12 @@ function App() {
     enabled: showSettings,
   })
 
+  const { data: autoResponderSettings } = useQuery({
+    queryKey: ['autoResponder'],
+    queryFn: api.getAutoResponderSettings,
+    enabled: showSettings,
+  })
+
   const { data: knowledgeArticles = [] } = useQuery({
     queryKey: ['knowledge', knowledgeSearch],
     queryFn: () => api.getKnowledgeArticles({ search: knowledgeSearch }),
@@ -166,6 +179,15 @@ function App() {
       })
     }
   }, [slackSettings])
+
+  useEffect(() => {
+    if (autoResponderSettings) {
+      setAutoResponderForm({
+        enabled: autoResponderSettings.enabled,
+        template: autoResponderSettings.template
+      })
+    }
+  }, [autoResponderSettings])
 
   const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899']
 
@@ -313,6 +335,13 @@ function App() {
   const testSlackMutation = useMutation({
     mutationFn: api.testSlack,
     onSuccess: (data) => setTestResult({ type: 'Slack', ...data }),
+  })
+
+  const updateAutoResponderMutation = useMutation({
+    mutationFn: api.updateAutoResponderSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['autoResponder'] })
+    },
   })
 
   const createArticleMutation = useMutation({
@@ -1363,6 +1392,51 @@ function App() {
               >
                 <TestTube2 className="w-4 h-4" />
                 {testSlackMutation.isPending ? 'Testing...' : 'Test Slack'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Mail className="w-5 h-5 text-blue-600" />
+              Auto-Responder
+            </h2>
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoResponderForm.enabled}
+                  onChange={(e) => setAutoResponderForm({ ...autoResponderForm, enabled: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Enable auto-responder for new tickets</span>
+              </label>
+              <p className="text-sm text-gray-500">
+                When enabled, customers will receive an automatic acknowledgment email when their ticket is received.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Response Template
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Use {'{ticket_id}'} for ticket number and {'{subject}'} for the original subject line.
+                </p>
+                <textarea
+                  value={autoResponderForm.template}
+                  onChange={(e) => setAutoResponderForm({ ...autoResponderForm, template: e.target.value })}
+                  className="w-full h-48 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono text-sm"
+                />
+              </div>
+              <button
+                onClick={() => updateAutoResponderMutation.mutate({
+                  enabled: autoResponderForm.enabled,
+                  template: autoResponderForm.template
+                })}
+                disabled={updateAutoResponderMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {updateAutoResponderMutation.isPending ? 'Saving...' : 'Save Auto-Responder Settings'}
               </button>
             </div>
           </div>

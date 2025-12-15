@@ -14,6 +14,7 @@ from app.services.imap_service import fetch_unread_emails
 from app.services.ai_service import process_ticket
 from app.services.approval_service import approve_ticket, reject_ticket, send_approved_response
 from app.services.slack_service import notify_new_ticket, notify_urgent_ticket, notify_ticket_processed
+from app.services.auto_responder_service import send_acknowledgment
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -384,7 +385,15 @@ def fetch_emails(db: Session = Depends(get_db)):
                 message_id=email_data["message_id"],
             )
             db.add(message)
+            db.flush()
             created_count += 1
+            
+            send_acknowledgment(
+                to_email=email_data["sender_email"],
+                ticket_id=ticket.id,
+                subject=email_data["subject"],
+                db=db
+            )
             
             notify_on_new = db.query(Settings).filter(Settings.key == "slack_notify_on_new").first()
             if notify_on_new and notify_on_new.value == "true":

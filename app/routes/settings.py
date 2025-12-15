@@ -189,3 +189,27 @@ def test_slack(db: Session = Depends(get_db)):
         return {"success": False, "message": "Slack webhook URL not configured"}
     
     return test_slack_webhook(webhook_url)
+
+
+class AutoResponderSettings(BaseModel):
+    enabled: bool = False
+    template: Optional[str] = None
+
+
+@router.get("/auto-responder")
+def get_auto_responder_settings(db: Session = Depends(get_db)):
+    from app.services.auto_responder_service import DEFAULT_AUTO_RESPONSE_TEMPLATE
+    enabled = get_setting(db, "auto_responder_enabled") == "true"
+    template = get_setting(db, "auto_responder_template") or DEFAULT_AUTO_RESPONSE_TEMPLATE
+    return {
+        "enabled": enabled,
+        "template": template
+    }
+
+
+@router.post("/auto-responder")
+def update_auto_responder_settings(request: AutoResponderSettings, db: Session = Depends(get_db)):
+    set_setting(db, "auto_responder_enabled", "true" if request.enabled else "false")
+    if request.template:
+        set_setting(db, "auto_responder_template", request.template)
+    return {"status": "updated"}
