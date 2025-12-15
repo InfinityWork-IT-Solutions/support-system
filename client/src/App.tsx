@@ -1985,24 +1985,27 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="min-h-screen dashboard-bg">
+      <header className="enterprise-header sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary-600 p-2 rounded-lg">
-                <Mail className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-cyan-400/30 blur-xl rounded-full"></div>
+                <div className="relative bg-gradient-to-br from-cyan-400 to-blue-500 p-2.5 rounded-xl shadow-lg">
+                  <Mail className="w-6 h-6 text-white" />
+                </div>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">AI Support Desk</h1>
-                <p className="text-sm text-gray-500">InfinityWork IT Solutions</p>
+                <h1 className="text-xl font-bold text-white tracking-tight">AI Support Desk</h1>
+                <p className="text-sm text-cyan-300/80">InfinityWork IT Solutions</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => fetchEmailsMutation.mutate()}
                 disabled={fetchEmailsMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                className="enterprise-btn enterprise-btn-primary"
               >
                 <Inbox className="w-4 h-4" />
                 {fetchEmailsMutation.isPending ? 'Fetching...' : 'Fetch Emails'}
@@ -2010,62 +2013,68 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
               <button
                 onClick={() => processAllMutation.mutate()}
                 disabled={processAllMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="enterprise-btn enterprise-btn-success"
               >
                 <Zap className="w-4 h-4" />
                 {processAllMutation.isPending ? 'Processing...' : 'Process All'}
               </button>
-              <button
-                onClick={() => refetchTickets()}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                <RefreshCw className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShowAnalytics(true)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="Analytics"
-              >
-                <BarChart3 className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShowTemplates(true)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="Templates"
-              >
-                <FileText className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setShowKnowledge(true)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="Knowledge Base"
-              >
-                <BookOpen className="w-5 h-5" />
-              </button>
-              <a
-                href={api.exportTickets(filters)}
-                download
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="Export to CSV"
-              >
-                <Download className="w-5 h-5" />
-              </a>
-              <button
-                onClick={() => setShowSettings(true)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <div className="h-6 w-px bg-gray-300 mx-1"></div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User className="w-4 h-4" />
-                  <span>{currentUser}</span>
+              <div className="h-8 w-px bg-white/20 mx-2"></div>
+              <div className="flex items-center gap-1 bg-white/10 rounded-xl p-1">
+                <button
+                  onClick={() => refetchTickets()}
+                  className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Refresh"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowAnalytics(true)}
+                  className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Analytics"
+                >
+                  <BarChart3 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowTemplates(true)}
+                  className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Templates"
+                >
+                  <FileText className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowKnowledge(true)}
+                  className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Knowledge Base"
+                >
+                  <BookOpen className="w-5 h-5" />
+                </button>
+                <a
+                  href={api.exportTickets(filters)}
+                  download
+                  className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Export to CSV"
+                >
+                  <Download className="w-5 h-5" />
+                </a>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="p-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="h-8 w-px bg-white/20 mx-2"></div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg">
+                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-white">{currentUser}</span>
                 </div>
                 <button
                   onClick={onLogout}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all"
                   title="Logout"
                 >
                   <LogOut className="w-4 h-4" />
@@ -2077,23 +2086,51 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-2xl font-bold text-gray-900">{stats?.total || 0}</div>
-            <div className="text-sm text-gray-500">Total Tickets</div>
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="grid grid-cols-4 gap-5 mb-6">
+          <div className="stat-card stat-card-blue p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{stats?.total || 0}</div>
+                <div className="text-sm font-medium text-gray-500 mt-1">Total Tickets</div>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl flex items-center justify-center">
+                <Inbox className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</div>
-            <div className="text-sm text-gray-500">Pending Review</div>
+          <div className="stat-card stat-card-amber p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-amber-600">{stats?.pending || 0}</div>
+                <div className="text-sm font-medium text-gray-500 mt-1">Pending Review</div>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-50 rounded-xl flex items-center justify-center">
+                <Clock className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-2xl font-bold text-green-600">{stats?.approved || 0}</div>
-            <div className="text-sm text-gray-500">Approved</div>
+          <div className="stat-card stat-card-green p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-green-600">{stats?.approved || 0}</div>
+                <div className="text-sm font-medium text-gray-500 mt-1">Approved</div>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-50 rounded-xl flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="text-2xl font-bold text-red-600">{stats?.rejected || 0}</div>
-            <div className="text-sm text-gray-500">Rejected</div>
+          <div className="stat-card stat-card-red p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-red-600">{stats?.rejected || 0}</div>
+                <div className="text-sm font-medium text-gray-500 mt-1">Rejected</div>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-red-50 rounded-xl flex items-center justify-center">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
           </div>
         </div>
 
