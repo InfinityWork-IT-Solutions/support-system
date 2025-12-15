@@ -22,7 +22,7 @@ TROUBLESHOOTING:
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 import hashlib
@@ -30,9 +30,12 @@ import os
 import httpx
 import secrets
 from urllib.parse import urlencode
+from passlib.context import CryptContext
 
 from app.database import get_db
 from app.models import Settings, User
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create a router for all authentication endpoints
 # All routes in this file will be prefixed with /api/auth
@@ -70,6 +73,36 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    """
+    Model for email/password registration requests.
+    
+    Attributes:
+        email: User's email address (must be unique)
+        password: Password (min 6 characters)
+        first_name: User's first name
+        last_name: User's last name
+        position: Job title/role (e.g., "IT Manager", "Support Lead")
+    """
+    email: EmailStr
+    password: str
+    first_name: str
+    last_name: str
+    position: Optional[str] = None
+
+
+class EmailLoginRequest(BaseModel):
+    """
+    Model for email/password login requests.
+    
+    Attributes:
+        email: User's registered email address
+        password: User's password
+    """
+    email: EmailStr
+    password: str
+
+
 class UserResponse(BaseModel):
     """
     Model for user data returned after successful authentication.
@@ -80,6 +113,7 @@ class UserResponse(BaseModel):
         username: Login username (email for Google OAuth users)
         email: User's email address
         role: User's permission level ('admin' or 'user')
+        position: Job title/role (e.g., "IT Manager", "Support Lead")
         profile_image_url: URL to user's profile picture (from Google for OAuth users)
     """
     id: int
@@ -87,6 +121,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     role: str
+    position: Optional[str] = None
     profile_image_url: Optional[str] = None
 
 
@@ -217,6 +252,106 @@ def logout():
         JSON with logout confirmation
     """
     return {"status": "logged_out"}
+
+
+@router.post("/register")
+def register(request: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Register a new user with email/password.
+    
+    Creates a new user account with hashed password using bcrypt.
+    Used for demo clients or users who don't have Google accounts.
+    
+    Args:
+        request: RegisterRequest with email, password, name, and position
+        db: Database session
+        
+    Returns:
+        JSON with user data on success
+        
+    Raises:
+        HTTPException 400: If email already exists or password too short
+    """
+    if len(request.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    existing = db.query(User).filter(User.email == request.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    hashed = pwd_context.hash(request.password)
+    
+    user = User(
+        email=request.email,
+        password_hash=hashed,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        position=request.position,
+        role="user",
+        is_active=True,
+        email_verified=True,
+        last_login_at=datetime.utcnow()
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "user": {
+            "id": user.id,
+            "name": f"{user.first_name} {user.last_name}".strip(),
+            "email": user.email,
+            "username": user.email,
+            "role": user.role,
+            "position": user.position,
+            "profile_image_url": user.profile_image_url
+        }
+    }
+
+
+@router.post("/email-login")
+def email_login(request: EmailLoginRequest, db: Session = Depends(get_db)):
+    """
+    Login with email and password.
+    
+    Verifies password using bcrypt and returns user data on success.
+    
+    Args:
+        request: EmailLoginRequest with email and password
+        db: Database session
+        
+    Returns:
+        JSON with user data on success
+        
+    Raises:
+        HTTPException 401: If credentials are invalid
+        HTTPException 403: If account is inactive
+    """
+    user = db.query(User).filter(User.email == request.email).first()
+    
+    if not user or not user.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    if not pwd_context.verify(request.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is inactive")
+    
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+    
+    return {
+        "user": {
+            "id": user.id,
+            "name": f"{user.first_name or ''} {user.last_name or ''}".strip() or user.email,
+            "email": user.email,
+            "username": user.email,
+            "role": user.role,
+            "position": user.position,
+            "profile_image_url": user.profile_image_url
+        }
+    }
 
 
 @router.get("/me")

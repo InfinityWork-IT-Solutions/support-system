@@ -400,8 +400,13 @@ class User(Base):
     System users who can log into the dashboard.
     
     Users can authenticate via:
-    1. Traditional username/password (for admin)
+    1. Email/password registration (for demos and external clients)
     2. Google OAuth SSO (for team members)
+    3. Traditional admin login (legacy fallback)
+    
+    When a user registers with email/password:
+    - password_hash stores the bcrypt-hashed password
+    - position stores their job title/role description
     
     When a user logs in with Google:
     - A new User record is created if they don't exist
@@ -411,11 +416,18 @@ class User(Base):
     Roles:
     - "admin": Full access to all features and settings
     - "user": Standard access to ticket management
+    
+    Position: User's job title (e.g., "IT Manager", "Support Lead", "Developer")
+    This is displayed in the profile header.
     """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
+    
+    # Password authentication (for email/password login)
+    # password_hash is null for Google OAuth-only users
+    password_hash = Column(String(255), nullable=True)
     
     # Google OAuth fields
     # google_id is the unique identifier from Google
@@ -426,9 +438,16 @@ class User(Base):
     last_name = Column(String(100), nullable=True)
     profile_image_url = Column(String(500), nullable=True)  # Google profile picture
     
+    # Position/Job title (e.g., "IT Manager", "Support Lead", "Developer")
+    # Displayed in profile header and team views
+    position = Column(String(100), nullable=True)
+    
     # Access control
     role = Column(String(50), default="user")  # "admin" or "user"
     is_active = Column(Boolean, default=True)  # Inactive users can't log in
+    
+    # Email verification (for email/password registration)
+    email_verified = Column(Boolean, default=False)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
