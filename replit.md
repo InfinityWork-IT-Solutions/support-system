@@ -10,6 +10,10 @@ Key capabilities:
 - Draft response generation with human approval workflow
 - SMTP integration for sending approved responses
 - Conversation threading and ticket management dashboard
+- Bulk actions for approving/rejecting/sending multiple tickets
+- Analytics dashboard with category and urgency charts
+- Response templates for quick replies
+- Auto-fetch scheduler for periodic email ingestion
 
 ## User Preferences
 
@@ -35,11 +39,13 @@ Preferred communication style: Simple, everyday language.
 - **AI Processing**: `ai_service.py` - OpenAI integration for ticket analysis
 - **Approval Workflow**: `approval_service.py` - Human approval before sending
 - **Email Sending**: `smtp_service.py` - SMTP integration for responses
+- **Scheduler**: `scheduler_service.py` - Background task for periodic email fetching
 
 ### Data Models
 - **Ticket**: Main entity with sender, subject, AI-generated fields (category, urgency, summary, fix_steps, draft_response), and approval status
 - **TicketMessage**: Individual messages in conversation threads
-- **Settings**: Key-value store for runtime configuration (email credentials, API keys)
+- **Settings**: Key-value store for runtime configuration (email credentials, API keys, scheduler settings)
+- **Template**: Reusable response templates with name, category, and content
 
 ### Approval Workflow
 Critical design decision: No automated sending. All AI-generated responses require explicit human approval through the dashboard before being sent to customers.
