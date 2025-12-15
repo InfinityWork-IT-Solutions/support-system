@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -169,6 +169,42 @@ def get_performance_metrics(db: Session = Depends(get_db)):
         "today_tickets": today_tickets,
         "today_processed": today_processed,
         "today_sent": today_sent
+    }
+
+
+@router.get("/stats/trends")
+def get_volume_trends(days: int = Query(30, ge=7, le=90), db: Session = Depends(get_db)):
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days - 1)
+    
+    date_range = []
+    current = start_date
+    while current <= end_date:
+        date_range.append(current)
+        current += timedelta(days=1)
+    
+    daily_counts = db.query(
+        func.date(Ticket.received_at).label('date'),
+        func.count(Ticket.id).label('count')
+    ).filter(
+        func.date(Ticket.received_at) >= start_date,
+        func.date(Ticket.received_at) <= end_date
+    ).group_by(func.date(Ticket.received_at)).all()
+    
+    count_dict = {str(row[0]): row[1] for row in daily_counts}
+    
+    trends = []
+    for date in date_range:
+        date_str = str(date)
+        trends.append({
+            "date": date_str,
+            "count": count_dict.get(date_str, 0)
+        })
+    
+    return {
+        "trends": trends,
+        "total": sum(t["count"] for t in trends),
+        "average": round(sum(t["count"] for t in trends) / len(trends), 1) if trends else 0
     }
 
 

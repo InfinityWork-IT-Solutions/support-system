@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, Template, SchedulerStatus, SlackSettings, KnowledgeArticle } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -29,7 +29,7 @@ import {
   Lightbulb,
   Download
 } from 'lucide-react'
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 
 function App() {
   const queryClient = useQueryClient()
@@ -98,6 +98,12 @@ function App() {
   const { data: performance } = useQuery({
     queryKey: ['performance'],
     queryFn: api.getPerformanceMetrics,
+    enabled: showAnalytics,
+  })
+
+  const { data: volumeTrends } = useQuery({
+    queryKey: ['volumeTrends'],
+    queryFn: () => api.getVolumeTrends(30),
     enabled: showAnalytics,
   })
 
@@ -824,6 +830,55 @@ function App() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Ticket Volume Trends (Last 30 Days)</h2>
+              {volumeTrends && (
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span>Total: <strong className="text-gray-900">{volumeTrends.total}</strong></span>
+                  <span>Daily Avg: <strong className="text-gray-900">{volumeTrends.average}</strong></span>
+                </div>
+              )}
+            </div>
+            {volumeTrends?.trends && volumeTrends.trends.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={volumeTrends.trends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(value: string) => {
+                      const [year, month, day] = value.split('-').map(Number);
+                      return `${month}/${day}`;
+                    }}
+                    tick={{ fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                  <Tooltip 
+                    labelFormatter={(value: string) => {
+                      const [year, month, day] = value.split('-').map(Number);
+                      const date = new Date(year, month - 1, day);
+                      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    }}
+                    formatter={(value: number) => [value, 'Tickets']}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2}
+                    dot={{ fill: '#3b82f6', strokeWidth: 2, r: 3 }}
+                    activeDot={{ r: 5, fill: '#2563eb' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-gray-500">
+                No trend data available
+              </div>
+            )}
           </div>
 
           <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
