@@ -14,6 +14,7 @@ Key capabilities:
 - Analytics dashboard with category and urgency charts
 - Response templates for quick replies
 - Auto-fetch scheduler for periodic email ingestion
+- Slack webhook integration for real-time notifications
 
 ## User Preferences
 
@@ -40,6 +41,7 @@ Preferred communication style: Simple, everyday language.
 - **Approval Workflow**: `approval_service.py` - Human approval before sending
 - **Email Sending**: `smtp_service.py` - SMTP integration for responses
 - **Scheduler**: `scheduler_service.py` - Background task for periodic email fetching
+- **Slack Notifications**: `slack_service.py` - Webhook notifications for new/urgent/processed tickets
 
 ### Data Models
 - **Ticket**: Main entity with sender, subject, AI-generated fields (category, urgency, summary, fix_steps, draft_response), and approval status
