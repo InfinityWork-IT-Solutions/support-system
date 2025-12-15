@@ -26,6 +26,15 @@ class Urgency(str, enum.Enum):
     HIGH = "High"
 
 
+class Settings(Base):
+    __tablename__ = "settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class Ticket(Base):
     __tablename__ = "tickets"
 

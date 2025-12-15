@@ -1,25 +1,26 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, TicketDetail } from './lib/api'
+import { api, Ticket, AppSettings } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
   CheckCircle, 
   XCircle, 
   Send, 
-  Clock, 
-  AlertTriangle,
   Search,
-  Filter,
   ChevronRight,
   Zap,
   Inbox,
-  MessageSquare
+  MessageSquare,
+  Settings,
+  Save,
+  TestTube2
 } from 'lucide-react'
 
 function App() {
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
   const [filters, setFilters] = useState({
     status: '',
     category: '',
@@ -27,21 +28,31 @@ function App() {
     search: '',
   })
   const [editedDraft, setEditedDraft] = useState('')
+  const [settingsForm, setSettingsForm] = useState<Partial<AppSettings>>({})
+  const [testResult, setTestResult] = useState<{type: string; success: boolean; message: string} | null>(null)
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
     queryFn: () => api.getTickets(filters),
+    enabled: !showSettings,
   })
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
     queryFn: api.getStats,
+    enabled: !showSettings,
   })
 
   const { data: selectedTicket, isLoading: ticketLoading } = useQuery({
     queryKey: ['ticket', selectedTicketId],
     queryFn: () => selectedTicketId ? api.getTicket(selectedTicketId) : null,
-    enabled: !!selectedTicketId,
+    enabled: !!selectedTicketId && !showSettings,
+  })
+
+  const { data: currentSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getSettings,
+    enabled: showSettings,
   })
 
   const fetchEmailsMutation = useMutation({
@@ -100,6 +111,24 @@ function App() {
     },
   })
 
+  const saveSettingsMutation = useMutation({
+    mutationFn: (settings: Partial<AppSettings>) => api.updateSettings(settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      setSettingsForm({})
+    },
+  })
+
+  const testImapMutation = useMutation({
+    mutationFn: api.testImap,
+    onSuccess: (data) => setTestResult({ type: 'IMAP', ...data }),
+  })
+
+  const testSmtpMutation = useMutation({
+    mutationFn: api.testSmtp,
+    onSuccess: (data) => setTestResult({ type: 'SMTP', ...data }),
+  })
+
   const getUrgencyColor = (urgency: string | null) => {
     switch (urgency) {
       case 'High': return 'text-red-600 bg-red-50'
@@ -121,6 +150,192 @@ function App() {
   const handleSelectTicket = (ticket: Ticket) => {
     setSelectedTicketId(ticket.id)
     setEditedDraft(ticket.draft_response || '')
+  }
+
+  const handleSettingsChange = (key: keyof AppSettings, value: string) => {
+    setSettingsForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleSaveSettings = () => {
+    saveSettingsMutation.mutate(settingsForm)
+  }
+
+  if (showSettings) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary-600 p-2 rounded-lg">
+                  <Settings className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+                  <p className="text-sm text-gray-500">Configure email and AI settings</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {testResult && (
+            <div className={`mb-6 p-4 rounded-lg ${testResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+              <strong>{testResult.type} Test:</strong> {testResult.message}
+              <button onClick={() => setTestResult(null)} className="ml-4 underline">Dismiss</button>
+            </div>
+          )}
+
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">IMAP Settings (Incoming Email)</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Host</label>
+                <input
+                  type="text"
+                  placeholder={currentSettings?.imap_host || "imap.gmail.com"}
+                  value={settingsForm.imap_host ?? ''}
+                  onChange={(e) => handleSettingsChange('imap_host', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Port</label>
+                <input
+                  type="text"
+                  placeholder={currentSettings?.imap_port || "993"}
+                  value={settingsForm.imap_port ?? ''}
+                  onChange={(e) => handleSettingsChange('imap_port', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Username</label>
+                <input
+                  type="text"
+                  placeholder={currentSettings?.imap_username || "your-email@gmail.com"}
+                  value={settingsForm.imap_username ?? ''}
+                  onChange={(e) => handleSettingsChange('imap_username', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">IMAP Password</label>
+                <input
+                  type="password"
+                  placeholder="App password"
+                  value={settingsForm.imap_password ?? ''}
+                  onChange={(e) => handleSettingsChange('imap_password', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <button
+              onClick={() => testImapMutation.mutate()}
+              disabled={testImapMutation.isPending}
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            >
+              <TestTube2 className="w-4 h-4" />
+              {testImapMutation.isPending ? 'Testing...' : 'Test IMAP Connection'}
+            </button>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">SMTP Settings (Outgoing Email)</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Host</label>
+                <input
+                  type="text"
+                  placeholder={currentSettings?.smtp_host || "smtp.gmail.com"}
+                  value={settingsForm.smtp_host ?? ''}
+                  onChange={(e) => handleSettingsChange('smtp_host', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Port</label>
+                <input
+                  type="text"
+                  placeholder={currentSettings?.smtp_port || "587"}
+                  value={settingsForm.smtp_port ?? ''}
+                  onChange={(e) => handleSettingsChange('smtp_port', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Username</label>
+                <input
+                  type="text"
+                  placeholder={currentSettings?.smtp_username || "your-email@gmail.com"}
+                  value={settingsForm.smtp_username ?? ''}
+                  onChange={(e) => handleSettingsChange('smtp_username', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Password</label>
+                <input
+                  type="password"
+                  placeholder="App password"
+                  value={settingsForm.smtp_password ?? ''}
+                  onChange={(e) => handleSettingsChange('smtp_password', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Email</label>
+                <input
+                  type="text"
+                  placeholder={currentSettings?.smtp_from_email || "support@infinityworkitsolutions.com"}
+                  value={settingsForm.smtp_from_email ?? ''}
+                  onChange={(e) => handleSettingsChange('smtp_from_email', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <button
+              onClick={() => testSmtpMutation.mutate()}
+              disabled={testSmtpMutation.isPending}
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            >
+              <TestTube2 className="w-4 h-4" />
+              {testSmtpMutation.isPending ? 'Testing...' : 'Test SMTP Connection'}
+            </button>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">OpenAI Settings</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+              <input
+                type="password"
+                placeholder="sk-..."
+                value={settingsForm.openai_api_key ?? ''}
+                onChange={(e) => handleSettingsChange('openai_api_key', e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveSettings}
+            disabled={saveSettingsMutation.isPending || Object.keys(settingsForm).length === 0}
+            className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+          >
+            <Save className="w-5 h-5" />
+            {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -159,6 +374,12 @@ function App() {
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 <RefreshCw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                <Settings className="w-5 h-5" />
               </button>
             </div>
           </div>

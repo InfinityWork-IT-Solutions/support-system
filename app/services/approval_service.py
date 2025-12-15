@@ -41,12 +41,17 @@ def send_approved_response(db: Session, ticket_id: int) -> bool:
     
     subject = f"Re: {ticket.subject}"
     
+    from app.models import Settings
+    settings = {s.key: s.value for s in db.query(Settings).all()}
+    from_email = settings.get("smtp_from_email") or "support@infinityworkitsolutions.com"
+    
     success = send_email(
         to_email=ticket.sender_email,
         subject=subject,
         body=ticket.draft_response,
         in_reply_to=ticket.message_id,
-        references=ticket.message_id
+        references=ticket.message_id,
+        db=db
     )
     
     if success:
@@ -54,7 +59,7 @@ def send_approved_response(db: Session, ticket_id: int) -> bool:
         
         outgoing_message = TicketMessage(
             ticket_id=ticket.id,
-            sender_email="support@infinityworkitsolutions.com",
+            sender_email=from_email,
             subject=subject,
             body=ticket.draft_response,
             is_incoming=False,

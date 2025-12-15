@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.database import engine, Base
-from app.routes import tickets
+from app.routes import tickets, settings
 
 Base.metadata.create_all(bind=engine)
 
@@ -24,6 +24,7 @@ app.add_middleware(
 )
 
 app.include_router(tickets.router)
+app.include_router(settings.router)
 
 if os.path.exists("client/dist"):
     app.mount("/assets", StaticFiles(directory="client/dist/assets"), name="assets")

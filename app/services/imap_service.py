@@ -4,7 +4,25 @@ from email.header import decode_header
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 import re
-from app.config import IMAP_HOST, IMAP_PORT, IMAP_USERNAME, IMAP_PASSWORD
+import os
+
+
+def get_imap_config(db=None):
+    if db:
+        from app.models import Settings
+        settings = {s.key: s.value for s in db.query(Settings).all()}
+        host = settings.get("imap_host")
+        port = int(settings.get("imap_port") or "993")
+        username = settings.get("imap_username")
+        password = settings.get("imap_password")
+        if all([host, username, password]):
+            return host, port, username, password
+    
+    host = os.environ.get("IMAP_HOST", "")
+    port = int(os.environ.get("IMAP_PORT", "993"))
+    username = os.environ.get("IMAP_USERNAME", "")
+    password = os.environ.get("IMAP_PASSWORD", "")
+    return host, port, username, password
 
 
 def decode_mime_header(header_value: str) -> str:
@@ -58,15 +76,18 @@ def extract_thread_id(msg) -> Optional[str]:
     return None
 
 
-def fetch_unread_emails() -> List[Dict[str, Any]]:
-    if not all([IMAP_HOST, IMAP_USERNAME, IMAP_PASSWORD]):
+def fetch_unread_emails(db=None) -> List[Dict[str, Any]]:
+    host, port, username, password = get_imap_config(db)
+    
+    if not all([host, username, password]):
+        print("IMAP not configured")
         return []
     
     emails_data = []
     
     try:
-        mail = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
-        mail.login(IMAP_USERNAME, IMAP_PASSWORD)
+        mail = imaplib.IMAP4_SSL(host, port)
+        mail.login(username, password)
         mail.select("INBOX")
         
         status, messages = mail.search(None, "UNSEEN")

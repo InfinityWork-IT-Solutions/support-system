@@ -3,8 +3,6 @@ import os
 from openai import OpenAI
 from typing import Dict, Any, Optional
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
 MASTER_PROMPT = """# AI SUPPORT DESK AUTO-RESPONDER
 
 ## ROLE & IDENTITY
@@ -68,18 +66,31 @@ You must NEVER:
 """
 
 
+def get_openai_key(db=None) -> Optional[str]:
+    if db:
+        from app.models import Settings
+        setting = db.query(Settings).filter(Settings.key == "openai_api_key").first()
+        if setting and setting.value:
+            return setting.value
+    return os.environ.get("OPENAI_API_KEY")
+
+
 def process_ticket(
     ticket_id: int,
     sender_email: str,
     subject: str,
     body: str,
-    received_at: str
+    received_at: str,
+    db=None
 ) -> Optional[Dict[str, Any]]:
-    if not OPENAI_API_KEY:
+    api_key = get_openai_key(db)
+    
+    if not api_key:
+        print("OpenAI API key not configured")
         return None
     
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=api_key)
         
         user_message = f"""
 Ticket ID: {ticket_id}

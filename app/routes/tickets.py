@@ -112,7 +112,7 @@ def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
 
 @router.post("/fetch")
 def fetch_emails(db: Session = Depends(get_db)):
-    emails = fetch_unread_emails()
+    emails = fetch_unread_emails(db)
     created_count = 0
     
     for email_data in emails:
@@ -191,7 +191,8 @@ def process_single_ticket(ticket_id: int, db: Session = Depends(get_db)):
         sender_email=ticket.sender_email,
         subject=ticket.subject,
         body=latest_message.body,
-        received_at=str(ticket.received_at)
+        received_at=str(ticket.received_at),
+        db=db
     )
     
     if result:
@@ -226,7 +227,8 @@ def process_all_tickets(db: Session = Depends(get_db)):
             sender_email=ticket.sender_email,
             subject=ticket.subject,
             body=latest_message.body,
-            received_at=str(ticket.received_at)
+            received_at=str(ticket.received_at),
+            db=db
         )
         
         if result:
