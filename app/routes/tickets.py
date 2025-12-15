@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, or_
+from sqlalchemy import desc, or_, func
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -73,6 +73,42 @@ def get_stats(db: Session = Depends(get_db)):
         "pending": pending,
         "approved": approved,
         "rejected": rejected
+    }
+
+
+@router.get("/stats/analytics")
+def get_analytics(db: Session = Depends(get_db)):
+    categories = db.query(
+        Ticket.category,
+        func.count(Ticket.id).label('count')
+    ).filter(Ticket.category.isnot(None)).group_by(Ticket.category).all()
+    
+    urgencies = db.query(
+        Ticket.urgency,
+        func.count(Ticket.id).label('count')
+    ).filter(Ticket.urgency.isnot(None)).group_by(Ticket.urgency).all()
+    
+    total = db.query(Ticket).count()
+    approved = db.query(Ticket).filter(Ticket.approval_status == ApprovalStatus.APPROVED.value).count()
+    rejected = db.query(Ticket).filter(Ticket.approval_status == ApprovalStatus.REJECTED.value).count()
+    sent = db.query(Ticket).filter(Ticket.sent_at.isnot(None)).count()
+    ai_processed = db.query(Ticket).filter(Ticket.ai_processed == True).count()
+    
+    approval_rate = round((approved / total * 100) if total > 0 else 0, 1)
+    rejection_rate = round((rejected / total * 100) if total > 0 else 0, 1)
+    send_rate = round((sent / approved * 100) if approved > 0 else 0, 1)
+    
+    return {
+        "by_category": [{"name": c[0] or "Uncategorized", "value": c[1]} for c in categories],
+        "by_urgency": [{"name": u[0] or "Unassigned", "value": u[1]} for u in urgencies],
+        "total_tickets": total,
+        "approved_count": approved,
+        "rejected_count": rejected,
+        "sent_count": sent,
+        "ai_processed_count": ai_processed,
+        "approval_rate": approval_rate,
+        "rejection_rate": rejection_rate,
+        "send_rate": send_rate
     }
 
 

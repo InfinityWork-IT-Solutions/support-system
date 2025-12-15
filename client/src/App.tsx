@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings } from './lib/api'
+import { api, Ticket, AppSettings, Analytics } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -16,13 +16,16 @@ import {
   Save,
   TestTube2,
   Square,
-  CheckSquare
+  CheckSquare,
+  BarChart3
 } from 'lucide-react'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 function App() {
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [showAnalytics, setShowAnalytics] = useState(false)
   const [filters, setFilters] = useState({
     status: '',
     category: '',
@@ -57,6 +60,14 @@ function App() {
     queryFn: api.getSettings,
     enabled: showSettings,
   })
+
+  const { data: analytics } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: api.getAnalytics,
+    enabled: showAnalytics,
+  })
+
+  const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899']
 
   const fetchEmailsMutation = useMutation({
     mutationFn: api.fetchEmails,
@@ -215,6 +226,129 @@ function App() {
   
   const getSelectedApprovedIds = () => 
     tickets.filter(t => selectedTicketIds.has(t.id) && t.approval_status === 'APPROVED' && !t.sent_at).map(t => t.id)
+
+  if (showAnalytics) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-6xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary-600 p-2 rounded-lg">
+                  <BarChart3 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
+                  <p className="text-sm text-gray-500">Ticket insights and statistics</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAnalytics(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="text-2xl font-bold text-gray-900">{analytics?.total_tickets || 0}</div>
+              <div className="text-sm text-gray-500">Total Tickets</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="text-2xl font-bold text-green-600">{analytics?.approval_rate || 0}%</div>
+              <div className="text-sm text-gray-500">Approval Rate</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="text-2xl font-bold text-blue-600">{analytics?.sent_count || 0}</div>
+              <div className="text-sm text-gray-500">Responses Sent</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="text-2xl font-bold text-purple-600">{analytics?.ai_processed_count || 0}</div>
+              <div className="text-sm text-gray-500">AI Processed</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">Tickets by Category</h2>
+              {analytics?.by_category && analytics.by_category.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={analytics.by_category}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {analytics.by_category.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  No category data available
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">Tickets by Urgency</h2>
+              {analytics?.by_urgency && analytics.by_urgency.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={analytics.by_urgency}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#3b82f6">
+                      {analytics.by_urgency.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.name === 'High' ? '#ef4444' : entry.name === 'Medium' ? '#eab308' : '#22c55e'} 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  No urgency data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4">Status Breakdown</h2>
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-3xl font-bold text-green-600">{analytics?.approved_count || 0}</div>
+                <div className="text-sm text-gray-600">Approved</div>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-3xl font-bold text-red-600">{analytics?.rejected_count || 0}</div>
+                <div className="text-sm text-gray-600">Rejected</div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-3xl font-bold text-blue-600">{analytics?.send_rate || 0}%</div>
+                <div className="text-sm text-gray-600">Send Rate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (showSettings) {
     return (
@@ -432,8 +566,16 @@ function App() {
                 <RefreshCw className="w-5 h-5" />
               </button>
               <button
+                onClick={() => setShowAnalytics(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="Analytics"
+              >
+                <BarChart3 className="w-5 h-5" />
+              </button>
+              <button
                 onClick={() => setShowSettings(true)}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="Settings"
               >
                 <Settings className="w-5 h-5" />
               </button>
