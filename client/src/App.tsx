@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, Template } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -17,7 +17,11 @@ import {
   TestTube2,
   Square,
   CheckSquare,
-  BarChart3
+  BarChart3,
+  FileText,
+  Plus,
+  Trash2,
+  Edit2
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
@@ -36,6 +40,9 @@ function App() {
   const [settingsForm, setSettingsForm] = useState<Partial<AppSettings>>({})
   const [testResult, setTestResult] = useState<{type: string; success: boolean; message: string} | null>(null)
   const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(new Set())
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templateForm, setTemplateForm] = useState<{ name: string; category: string; content: string }>({ name: '', category: '', content: '' })
+  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null)
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -65,6 +72,11 @@ function App() {
     queryKey: ['analytics'],
     queryFn: api.getAnalytics,
     enabled: showAnalytics,
+  })
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api.getTemplates(),
   })
 
   const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899']
@@ -169,6 +181,31 @@ function App() {
     },
   })
 
+  const createTemplateMutation = useMutation({
+    mutationFn: api.createTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      setTemplateForm({ name: '', category: '', content: '' })
+    },
+  })
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { name?: string; category?: string; content?: string } }) => 
+      api.updateTemplate(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      setEditingTemplateId(null)
+      setTemplateForm({ name: '', category: '', content: '' })
+    },
+  })
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: api.deleteTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+    },
+  })
+
   const getUrgencyColor = (urgency: string | null) => {
     switch (urgency) {
       case 'High': return 'text-red-600 bg-red-50'
@@ -226,6 +263,166 @@ function App() {
   
   const getSelectedApprovedIds = () => 
     tickets.filter(t => selectedTicketIds.has(t.id) && t.approval_status === 'APPROVED' && !t.sent_at).map(t => t.id)
+
+  const handleEditTemplate = (template: Template) => {
+    setEditingTemplateId(template.id)
+    setTemplateForm({ name: template.name, category: template.category || '', content: template.content })
+  }
+
+  const handleSaveTemplate = () => {
+    if (editingTemplateId) {
+      updateTemplateMutation.mutate({ id: editingTemplateId, data: templateForm })
+    } else {
+      createTemplateMutation.mutate(templateForm)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingTemplateId(null)
+    setTemplateForm({ name: '', category: '', content: '' })
+  }
+
+  const applyTemplate = (template: Template) => {
+    setEditedDraft(template.content)
+  }
+
+  if (showTemplates) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-6xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary-600 p-2 rounded-lg">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Response Templates</h1>
+                  <p className="text-sm text-gray-500">Manage reusable response templates</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTemplates(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">
+                {editingTemplateId ? 'Edit Template' : 'Create New Template'}
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
+                  <input
+                    type="text"
+                    value={templateForm.name}
+                    onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                    placeholder="e.g., Password Reset Response"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category (optional)</label>
+                  <select
+                    value={templateForm.category}
+                    onChange={(e) => setTemplateForm({ ...templateForm, category: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">No Category</option>
+                    <option value="Technical">Technical</option>
+                    <option value="Billing">Billing</option>
+                    <option value="Login / Access">Login / Access</option>
+                    <option value="Feature Request">Feature Request</option>
+                    <option value="General Inquiry">General Inquiry</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Template Content</label>
+                  <textarea
+                    value={templateForm.content}
+                    onChange={(e) => setTemplateForm({ ...templateForm, content: e.target.value })}
+                    placeholder="Enter your template text here..."
+                    className="w-full h-48 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveTemplate}
+                    disabled={!templateForm.name || !templateForm.content || createTemplateMutation.isPending || updateTemplateMutation.isPending}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    {editingTemplateId ? 'Update Template' : 'Save Template'}
+                  </button>
+                  {editingTemplateId && (
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">Existing Templates ({templates.length})</h2>
+              {templates.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No templates yet. Create your first one!</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {templates.map((template) => (
+                    <div key={template.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{template.name}</h3>
+                          {template.category && (
+                            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                              {template.category}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditTemplate(template)}
+                            className="p-1.5 text-gray-500 hover:bg-gray-200 rounded"
+                            title="Edit template"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteTemplateMutation.mutate(template.id)}
+                            disabled={deleteTemplateMutation.isPending}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                            title="Delete template"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 line-clamp-2">{template.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (showAnalytics) {
     return (
@@ -573,6 +770,13 @@ function App() {
                 <BarChart3 className="w-5 h-5" />
               </button>
               <button
+                onClick={() => setShowTemplates(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="Templates"
+              >
+                <FileText className="w-5 h-5" />
+              </button>
+              <button
                 onClick={() => setShowSettings(true)}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                 title="Settings"
@@ -864,7 +1068,25 @@ function App() {
 
                 {selectedTicket.ai_processed && (
                   <div className="p-6 border-b">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Draft Response</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-900">Draft Response</h3>
+                      {templates.length > 0 && (
+                        <select
+                          onChange={(e) => {
+                            const template = templates.find(t => t.id === parseInt(e.target.value))
+                            if (template) applyTemplate(template)
+                            e.target.value = ''
+                          }}
+                          className="text-sm px-2 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Use Template...</option>
+                          {templates.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                     <textarea
                       value={editedDraft || selectedTicket.draft_response || ''}
                       onChange={(e) => setEditedDraft(e.target.value)}
