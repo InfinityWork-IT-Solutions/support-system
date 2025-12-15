@@ -38,7 +38,8 @@ import {
   Bookmark,
   Plus,
   X,
-  Filter
+  Filter,
+  Bell
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 

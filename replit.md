@@ -15,6 +15,15 @@ Key capabilities:
 - Response templates for quick replies
 - Auto-fetch scheduler for periodic email ingestion
 - Slack webhook integration for real-time notifications
+- Knowledge base with suggested solutions based on ticket category
+- CSV export for ticket data
+- Customer satisfaction surveys with ratings and feedback
+- Customer history view (previous tickets from same sender)
+- Auto-responder for ticket acknowledgment emails
+- Team member management and ticket assignment
+- SLA tracking with priority queue and breach alerts
+- Email notifications for urgent tickets
+- Quick filters and saved views for efficient ticket management
 
 ## User Preferences
 
