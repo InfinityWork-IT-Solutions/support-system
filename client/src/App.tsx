@@ -98,6 +98,15 @@ function App() {
     medium_hours: 8,
     low_hours: 24
   })
+  const [emailNotificationForm, setEmailNotificationForm] = useState<{
+    enabled: boolean;
+    urgent_only: boolean;
+    recipients: string;
+  }>({
+    enabled: false,
+    urgent_only: true,
+    recipients: 'all'
+  })
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -167,6 +176,12 @@ function App() {
   const { data: autoResponderSettings } = useQuery({
     queryKey: ['autoResponder'],
     queryFn: api.getAutoResponderSettings,
+    enabled: showSettings,
+  })
+
+  const { data: emailNotificationSettings } = useQuery({
+    queryKey: ['emailNotifications'],
+    queryFn: api.getEmailNotificationSettings,
     enabled: showSettings,
   })
 
@@ -241,6 +256,16 @@ function App() {
       })
     }
   }, [autoResponderSettings])
+
+  useEffect(() => {
+    if (emailNotificationSettings) {
+      setEmailNotificationForm({
+        enabled: emailNotificationSettings.enabled,
+        urgent_only: emailNotificationSettings.urgent_only,
+        recipients: emailNotificationSettings.recipients
+      })
+    }
+  }, [emailNotificationSettings])
 
   const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899']
 
@@ -395,6 +420,18 @@ function App() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autoResponder'] })
     },
+  })
+
+  const updateEmailNotificationMutation = useMutation({
+    mutationFn: api.updateEmailNotificationSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emailNotifications'] })
+    },
+  })
+
+  const testEmailNotificationMutation = useMutation({
+    mutationFn: api.testEmailNotification,
+    onSuccess: (data) => setTestResult({ type: 'Email Notification', ...data }),
   })
 
   const createArticleMutation = useMutation({
@@ -1535,6 +1572,80 @@ function App() {
               >
                 <TestTube2 className="w-4 h-4" />
                 {testSlackMutation.isPending ? 'Testing...' : 'Test Slack'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Bell className="w-5 h-5 text-orange-600" />
+                <h2 className="text-lg font-semibold">Email Notifications</h2>
+              </div>
+              {emailNotificationSettings?.enabled && (
+                <span className="flex items-center gap-1.5 text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  Active
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Send email alerts to team members when urgent tickets are received or SLA deadlines are breached.
+            </p>
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={emailNotificationForm.enabled}
+                  onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, enabled: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Enable email notifications</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={emailNotificationForm.urgent_only}
+                  onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, urgent_only: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Only notify for urgent tickets</span>
+              </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Recipients</label>
+                <select
+                  value={emailNotificationForm.recipients}
+                  onChange={(e) => setEmailNotificationForm({ ...emailNotificationForm, recipients: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="all">All active team members</option>
+                  <option value="none">No recipients (disabled)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Notifications will be sent to all active team members' email addresses.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={() => updateEmailNotificationMutation.mutate({
+                  enabled: emailNotificationForm.enabled,
+                  urgent_only: emailNotificationForm.urgent_only,
+                  recipients: emailNotificationForm.recipients
+                })}
+                disabled={updateEmailNotificationMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {updateEmailNotificationMutation.isPending ? 'Saving...' : 'Save Email Settings'}
+              </button>
+              <button
+                onClick={() => testEmailNotificationMutation.mutate()}
+                disabled={testEmailNotificationMutation.isPending || !emailNotificationSettings?.enabled}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <TestTube2 className="w-4 h-4" />
+                {testEmailNotificationMutation.isPending ? 'Testing...' : 'Test Email'}
               </button>
             </div>
           </div>

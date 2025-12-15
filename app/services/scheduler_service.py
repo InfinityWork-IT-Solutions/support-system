@@ -21,15 +21,20 @@ def get_scheduler_status():
     }
 
 
-def _fetch_emails_sync():
+def _fetch_and_process_emails_sync():
     from app.database import SessionLocal
     from app.services.imap_service import fetch_unread_emails
+    from app.services.ai_service import process_ticket
+    from app.services.sla_service import update_ticket_sla
+    from app.services.email_notification_service import send_urgent_ticket_notification
     from app.models import Ticket, TicketMessage
+    from sqlalchemy import desc
     
     db = SessionLocal()
     try:
         emails = fetch_unread_emails(db)
         created = 0
+        processed = 0
         
         for email_data in emails:
             existing = db.query(Ticket).filter(
@@ -67,12 +72,48 @@ def _fetch_emails_sync():
                 created += 1
         
         db.commit()
-        print(f"[Scheduler] Fetched {len(emails)} emails, created {created} new tickets at {datetime.now()}")
-        return len(emails), created
+        
+        unprocessed = db.query(Ticket).filter(Ticket.ai_processed == False).all()
+        for ticket in unprocessed:
+            latest_message = db.query(TicketMessage).filter(
+                TicketMessage.ticket_id == ticket.id,
+                TicketMessage.is_incoming == True
+            ).order_by(desc(TicketMessage.created_at)).first()
+            
+            if not latest_message:
+                continue
+            
+            try:
+                result = process_ticket(
+                    ticket_id=ticket.id,
+                    sender_email=ticket.sender_email,
+                    subject=ticket.subject,
+                    body=latest_message.body,
+                    received_at=str(ticket.received_at),
+                    db=db
+                )
+                
+                if result:
+                    ticket.category = result["category"]
+                    ticket.urgency = result["urgency"]
+                    ticket.summary = result["summary"]
+                    ticket.fix_steps = result["fix_steps"]
+                    ticket.draft_response = result["draft_response"]
+                    ticket.ai_processed = True
+                    processed += 1
+                    
+                    update_ticket_sla(db, ticket)
+                    send_urgent_ticket_notification(db, ticket)
+            except Exception as e:
+                print(f"[Scheduler] Error processing ticket {ticket.id}: {e}")
+        
+        db.commit()
+        print(f"[Scheduler] Fetched {len(emails)} emails, created {created} tickets, processed {processed} at {datetime.now()}")
+        return len(emails), created, processed
     except Exception as e:
-        print(f"[Scheduler] Error fetching emails: {e}")
+        print(f"[Scheduler] Error in fetch/process: {e}")
         db.rollback()
-        return 0, 0
+        return 0, 0, 0
     finally:
         db.close()
 
@@ -82,8 +123,8 @@ def _scheduler_loop():
     
     while not _stop_event.is_set():
         try:
-            future = _executor.submit(_fetch_emails_sync)
-            future.result(timeout=120)
+            future = _executor.submit(_fetch_and_process_emails_sync)
+            future.result(timeout=300)
         except Exception as e:
             print(f"[Scheduler] Error in fetch task: {e}")
         

@@ -16,6 +16,7 @@ from app.services.approval_service import approve_ticket, reject_ticket, send_ap
 from app.services.slack_service import notify_new_ticket, notify_urgent_ticket, notify_ticket_processed
 from app.services.auto_responder_service import send_acknowledgment
 from app.services.sla_service import update_ticket_sla, get_priority_queue, get_sla_summary, update_all_sla_status
+from app.services.email_notification_service import send_urgent_ticket_notification
 
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -464,6 +465,8 @@ def process_single_ticket(ticket_id: int, db: Session = Depends(get_db)):
         else:
             notify_ticket_processed(db, ticket)
         
+        send_urgent_ticket_notification(db, ticket)
+        
         return {"status": "processed", "result": result}
     else:
         raise HTTPException(status_code=500, detail="AI processing failed")
@@ -500,6 +503,9 @@ def process_all_tickets(db: Session = Depends(get_db)):
             ticket.draft_response = result["draft_response"]
             ticket.ai_processed = True
             processed_count += 1
+            
+            update_ticket_sla(db, ticket)
+            send_urgent_ticket_notification(db, ticket)
     
     db.commit()
     return {"processed": processed_count}

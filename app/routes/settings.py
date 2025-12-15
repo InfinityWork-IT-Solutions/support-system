@@ -213,3 +213,55 @@ def update_auto_responder_settings(request: AutoResponderSettings, db: Session =
     if request.template:
         set_setting(db, "auto_responder_template", request.template)
     return {"status": "updated"}
+
+
+class EmailNotificationSettings(BaseModel):
+    enabled: bool = False
+    urgent_only: bool = True
+    recipients: str = "all"
+
+
+@router.get("/email-notifications")
+def get_email_notification_settings(db: Session = Depends(get_db)):
+    from app.services.email_notification_service import get_email_notification_settings as get_settings
+    settings = get_settings(db)
+    return settings
+
+
+@router.post("/email-notifications")
+def update_email_notification_settings(request: EmailNotificationSettings, db: Session = Depends(get_db)):
+    set_setting(db, "email_notify_enabled", "true" if request.enabled else "false")
+    set_setting(db, "email_notify_urgent_only", "true" if request.urgent_only else "false")
+    set_setting(db, "email_notify_recipients", request.recipients)
+    return {"status": "updated"}
+
+
+@router.post("/email-notifications/test")
+def test_email_notification(db: Session = Depends(get_db)):
+    from app.services.smtp_service import get_smtp_config
+    from app.services.email_notification_service import get_notification_recipients, get_email_notification_settings as get_settings
+    
+    config = get_smtp_config(db)
+    if not all(config[:4]):
+        return {"success": False, "message": "SMTP not configured"}
+    
+    settings = get_settings(db)
+    if not settings["enabled"]:
+        return {"success": False, "message": "Email notifications are disabled"}
+    
+    recipients = get_notification_recipients(db, settings)
+    if not recipients:
+        return {"success": False, "message": "No recipients configured"}
+    
+    from app.services.smtp_service import send_email
+    success = send_email(
+        to_email=recipients[0],
+        subject="[TEST] AI Support Desk Email Notification",
+        body="This is a test email from AI Support Desk email notifications.\n\nIf you received this, email notifications are working correctly.",
+        db=db
+    )
+    
+    if success:
+        return {"success": True, "message": f"Test email sent to {recipients[0]}"}
+    else:
+        return {"success": False, "message": "Failed to send test email"}
