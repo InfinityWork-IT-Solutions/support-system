@@ -307,6 +307,19 @@ def list_tickets(
     return tickets
 
 
+@router.get("/customer/{email}", response_model=List[TicketResponse])
+def get_customer_history(
+    email: str,
+    exclude_ticket_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Ticket).filter(Ticket.sender_email == email)
+    if exclude_ticket_id:
+        query = query.filter(Ticket.id != exclude_ticket_id)
+    tickets = query.order_by(desc(Ticket.received_at)).limit(10).all()
+    return tickets
+
+
 @router.get("/{ticket_id}", response_model=TicketDetailResponse)
 def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()

@@ -28,7 +28,8 @@ import {
   BookOpen,
   Lightbulb,
   Download,
-  Star
+  Star,
+  User
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from 'recharts'
 
@@ -144,6 +145,15 @@ function App() {
       selectedTicket?.summary?.split(' ').slice(0, 5).join(',')
     ),
     enabled: !!selectedTicket && selectedTicket.ai_processed,
+  })
+
+  const { data: customerHistory = [] } = useQuery({
+    queryKey: ['customerHistory', selectedTicket?.sender_email, selectedTicket?.id],
+    queryFn: () => api.getCustomerHistory(
+      selectedTicket?.sender_email || '',
+      selectedTicket?.id
+    ),
+    enabled: !!selectedTicket?.sender_email,
   })
 
   useEffect(() => {
@@ -1750,6 +1760,40 @@ function App() {
                     <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">
                       {selectedTicket.fix_steps}
                     </pre>
+                  </div>
+                )}
+
+                {customerHistory.length > 0 && (
+                  <div className="p-6 border-b bg-blue-50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="w-4 h-4 text-blue-600" />
+                      <h3 className="text-sm font-semibold text-gray-900">Customer History ({customerHistory.length} previous tickets)</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {customerHistory.map((historyTicket) => (
+                        <div 
+                          key={historyTicket.id} 
+                          className="flex items-center justify-between bg-white p-3 rounded-lg border cursor-pointer hover:bg-gray-50"
+                          onClick={() => handleSelectTicket(historyTicket)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-gray-900 truncate">{historyTicket.subject}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(historyTicket.approval_status)}`}>
+                                {historyTicket.approval_status}
+                              </span>
+                              {historyTicket.category && (
+                                <span className="text-xs text-gray-500">{historyTicket.category}</span>
+                              )}
+                              <span className="text-xs text-gray-400">
+                                {new Date(historyTicket.received_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
