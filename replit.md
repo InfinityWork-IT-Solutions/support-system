@@ -24,6 +24,7 @@ Key capabilities:
 - SLA tracking with priority queue and breach alerts
 - Email notifications for urgent tickets
 - Quick filters and saved views for efficient ticket management
+- Beautiful animated login page with particle effects and glass-morphism design
 
 ## User Preferences
 
