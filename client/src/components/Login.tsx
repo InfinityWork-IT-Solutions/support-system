@@ -231,7 +231,7 @@ export default function Login({ onLogin }: LoginProps) {
             <div className="text-center text-gray-400 text-sm mb-4">Or sign in with your organization</div>
             <button
               type="button"
-              onClick={() => window.location.href = '/api/auth/google/login'}
+              onClick={() => window.open('/api/auth/google/login', '_blank')}
               className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white hover:bg-gray-100 text-gray-800 font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
