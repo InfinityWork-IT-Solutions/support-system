@@ -38,7 +38,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { LogIn, Lock, User, Loader2, Mail, UserPlus, Briefcase, Shield } from 'lucide-react'
+import { LogIn, Lock, User, Loader2, Mail, UserPlus, Briefcase, Shield, Building2 } from 'lucide-react'
 import companyLogo from '../assets/company-logo.png'
 import aiBgImage from '@assets/image_1765797199880.png'
 
@@ -122,6 +122,7 @@ export default function Login({ onLogin }: LoginProps) {
   const [registerPassword, setRegisterPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [position, setPosition] = useState('')
+  const [organization, setOrganization] = useState('')
   
   // Error and loading states
   const [error, setError] = useState('')
@@ -222,6 +223,7 @@ export default function Login({ onLogin }: LoginProps) {
           first_name: firstName,
           last_name: lastName,
           position: position || undefined,
+          organization: organization || undefined,
         }),
       })
 
@@ -576,6 +578,24 @@ export default function Login({ onLogin }: LoginProps) {
                     onChange={(e) => setPosition(e.target.value)}
                     className="block w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
                     placeholder="e.g. IT Manager, Support Lead"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Organization / Company (Optional)
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Building2 className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={organization}
+                    onChange={(e) => setOrganization(e.target.value)}
+                    className="block w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 input-glow transition-all duration-300"
+                    placeholder="e.g. InfinityWork IT Solutions"
                   />
                 </div>
               </div>

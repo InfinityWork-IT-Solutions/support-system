@@ -83,12 +83,14 @@ class RegisterRequest(BaseModel):
         first_name: User's first name
         last_name: User's last name
         position: Job title/role (e.g., "IT Manager", "Support Lead")
+        organization: Company/organization name
     """
     email: EmailStr
     password: str
     first_name: str
     last_name: str
     position: Optional[str] = None
+    organization: Optional[str] = None
 
 
 class EmailLoginRequest(BaseModel):
@@ -114,6 +116,7 @@ class UserResponse(BaseModel):
         email: User's email address
         role: User's permission level ('admin' or 'user')
         position: Job title/role (e.g., "IT Manager", "Support Lead")
+        organization: Company/organization name
         profile_image_url: URL to user's profile picture (from Google for OAuth users)
     """
     id: int
@@ -122,6 +125,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     position: Optional[str] = None
+    organization: Optional[str] = None
     profile_image_url: Optional[str] = None
 
 
@@ -287,6 +291,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         first_name=request.first_name,
         last_name=request.last_name,
         position=request.position,
+        organization=request.organization,
         role="user",
         is_active=True,
         email_verified=True,
@@ -304,6 +309,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
             "username": user.email,
             "role": user.role,
             "position": user.position,
+            "organization": user.organization,
             "profile_image_url": user.profile_image_url
         }
     }
@@ -349,6 +355,7 @@ def email_login(request: EmailLoginRequest, db: Session = Depends(get_db)):
             "username": user.email,
             "role": user.role,
             "position": user.position,
+            "organization": user.organization,
             "profile_image_url": user.profile_image_url
         }
     }
@@ -616,6 +623,8 @@ async def google_callback(
         "email": user.email,
         "username": user.email,  # Email serves as username for OAuth users
         "role": user.role,
+        "position": user.position,
+        "organization": user.organization,
         "profile_image_url": user.profile_image_url
     }
     

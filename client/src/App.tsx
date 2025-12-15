@@ -200,11 +200,19 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   
-  // Get user position from localStorage
+  // Get user position and organization from localStorage
   const userPosition = (() => {
     try {
       const user = localStorage.getItem('auth_user')
       return user ? JSON.parse(user).position : null
+    } catch {
+      return null
+    }
+  })()
+  const userOrganization = (() => {
+    try {
+      const user = localStorage.getItem('auth_user')
+      return user ? JSON.parse(user).organization : null
     } catch {
       return null
     }
@@ -2584,8 +2592,10 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-white">{currentUser}</span>
-                    {userPosition && (
-                      <span className="text-xs text-white/60">{userPosition}</span>
+                    {(userPosition || userOrganization) && (
+                      <span className="text-xs text-white/60">
+                        {userPosition}{userPosition && userOrganization && ' - '}{userOrganization}
+                      </span>
                     )}
                   </div>
                 </div>

@@ -442,6 +442,9 @@ class User(Base):
     # Displayed in profile header and team views
     position = Column(String(100), nullable=True)
     
+    # Organization/Company name
+    organization = Column(String(200), nullable=True)
+    
     # Access control
     role = Column(String(50), default="user")  # "admin" or "user"
     is_active = Column(Boolean, default=True)  # Inactive users can't log in
