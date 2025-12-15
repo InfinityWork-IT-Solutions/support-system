@@ -118,6 +118,9 @@ async def google_login(request: Request):
     }
     
     google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    print(f"[DEBUG] Google OAuth redirect_uri: {redirect_uri}")
+    print(f"[DEBUG] Google OAuth client_id: {GOOGLE_CLIENT_ID[:20]}...")
+    print(f"[DEBUG] Full auth URL (without state): {google_auth_url.split('&state=')[0]}")
     return RedirectResponse(url=google_auth_url)
 
 
