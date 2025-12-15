@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, Ticket, AppSettings, Analytics, Template, SchedulerStatus, SlackSettings } from './lib/api'
+import { api, Ticket, AppSettings, Analytics, Template, SchedulerStatus, SlackSettings, KnowledgeArticle } from './lib/api'
 import { 
   Mail, 
   RefreshCw, 
@@ -24,7 +24,9 @@ import {
   Clock,
   Play,
   Pause,
-  Hash
+  Hash,
+  BookOpen,
+  Lightbulb
 } from 'lucide-react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
@@ -57,6 +59,10 @@ function App() {
     notify_on_urgent: true,
     notify_on_process: false
   })
+  const [showKnowledge, setShowKnowledge] = useState(false)
+  const [knowledgeForm, setKnowledgeForm] = useState<{ title: string; category: string; keywords: string; content: string }>({ title: '', category: '', keywords: '', content: '' })
+  const [editingArticleId, setEditingArticleId] = useState<number | null>(null)
+  const [knowledgeSearch, setKnowledgeSearch] = useState('')
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets', filters],
@@ -103,6 +109,21 @@ function App() {
     queryKey: ['slackSettings'],
     queryFn: api.getSlackSettings,
     enabled: showSettings,
+  })
+
+  const { data: knowledgeArticles = [] } = useQuery({
+    queryKey: ['knowledge', knowledgeSearch],
+    queryFn: () => api.getKnowledgeArticles({ search: knowledgeSearch }),
+    enabled: showKnowledge,
+  })
+
+  const { data: knowledgeSuggestions = [] } = useQuery({
+    queryKey: ['knowledgeSuggestions', selectedTicket?.category, selectedTicket?.summary],
+    queryFn: () => api.getKnowledgeSuggestions(
+      selectedTicket?.category || undefined,
+      selectedTicket?.summary?.split(' ').slice(0, 5).join(',')
+    ),
+    enabled: !!selectedTicket && selectedTicket.ai_processed,
   })
 
   useEffect(() => {
@@ -264,6 +285,31 @@ function App() {
     onSuccess: (data) => setTestResult({ type: 'Slack', ...data }),
   })
 
+  const createArticleMutation = useMutation({
+    mutationFn: api.createKnowledgeArticle,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge'] })
+      setKnowledgeForm({ title: '', category: '', keywords: '', content: '' })
+    },
+  })
+
+  const updateArticleMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { title?: string; category?: string; keywords?: string; content?: string } }) => 
+      api.updateKnowledgeArticle(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge'] })
+      setEditingArticleId(null)
+      setKnowledgeForm({ title: '', category: '', keywords: '', content: '' })
+    },
+  })
+
+  const deleteArticleMutation = useMutation({
+    mutationFn: api.deleteKnowledgeArticle,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge'] })
+    },
+  })
+
   const getUrgencyColor = (urgency: string | null) => {
     switch (urgency) {
       case 'High': return 'text-red-600 bg-red-50'
@@ -342,6 +388,196 @@ function App() {
 
   const applyTemplate = (template: Template) => {
     setEditedDraft(template.content)
+  }
+
+  const handleEditArticle = (article: KnowledgeArticle) => {
+    setEditingArticleId(article.id)
+    setKnowledgeForm({ title: article.title, category: article.category || '', keywords: article.keywords || '', content: article.content })
+  }
+
+  const handleSaveArticle = () => {
+    if (editingArticleId) {
+      updateArticleMutation.mutate({ id: editingArticleId, data: knowledgeForm })
+    } else {
+      createArticleMutation.mutate(knowledgeForm)
+    }
+  }
+
+  const handleCancelArticleEdit = () => {
+    setEditingArticleId(null)
+    setKnowledgeForm({ title: '', category: '', keywords: '', content: '' })
+  }
+
+  const applyArticleToResponse = (article: KnowledgeArticle) => {
+    setEditedDraft(article.content)
+  }
+
+  if (showKnowledge) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-6xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary-600 p-2 rounded-lg">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Knowledge Base</h1>
+                  <p className="text-sm text-gray-500">Solution articles and help guides</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowKnowledge(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search knowledge base..."
+                value={knowledgeSearch}
+                onChange={(e) => setKnowledgeSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">
+                {editingArticleId ? 'Edit Article' : 'Create New Article'}
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={knowledgeForm.title}
+                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, title: e.target.value })}
+                    placeholder="e.g., How to Reset Password"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    value={knowledgeForm.category}
+                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, category: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">No Category</option>
+                    <option value="Technical">Technical</option>
+                    <option value="Billing">Billing</option>
+                    <option value="Login / Access">Login / Access</option>
+                    <option value="Feature Request">Feature Request</option>
+                    <option value="General Inquiry">General Inquiry</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Keywords (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={knowledgeForm.keywords}
+                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, keywords: e.target.value })}
+                    placeholder="e.g., password, reset, login, forgot"
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                  <textarea
+                    value={knowledgeForm.content}
+                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, content: e.target.value })}
+                    placeholder="Enter the article content..."
+                    className="w-full h-48 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveArticle}
+                    disabled={!knowledgeForm.title || !knowledgeForm.content || createArticleMutation.isPending || updateArticleMutation.isPending}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    {editingArticleId ? 'Update Article' : 'Save Article'}
+                  </button>
+                  {editingArticleId && (
+                    <button
+                      onClick={handleCancelArticleEdit}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">Articles ({knowledgeArticles.length})</h2>
+              {knowledgeArticles.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No articles yet. Create your first one!</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                  {knowledgeArticles.map((article) => (
+                    <div key={article.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{article.title}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            {article.category && (
+                              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                                {article.category}
+                              </span>
+                            )}
+                            {article.keywords && (
+                              <span className="text-xs text-gray-400">
+                                {article.keywords.split(',').slice(0, 3).join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditArticle(article)}
+                            className="p-1.5 text-gray-500 hover:bg-gray-200 rounded"
+                            title="Edit article"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteArticleMutation.mutate(article.id)}
+                            disabled={deleteArticleMutation.isPending}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                            title="Delete article"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 line-clamp-2">{article.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (showTemplates) {
@@ -1000,6 +1236,13 @@ function App() {
                 <FileText className="w-5 h-5" />
               </button>
               <button
+                onClick={() => setShowKnowledge(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="Knowledge Base"
+              >
+                <BookOpen className="w-5 h-5" />
+              </button>
+              <button
                 onClick={() => setShowSettings(true)}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                 title="Settings"
@@ -1253,6 +1496,33 @@ function App() {
                   <div className="p-6 border-b">
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">AI Summary</h3>
                     <p className="text-gray-700">{selectedTicket.summary}</p>
+                  </div>
+                )}
+
+                {knowledgeSuggestions.length > 0 && (
+                  <div className="p-6 border-b bg-yellow-50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Lightbulb className="w-4 h-4 text-yellow-600" />
+                      <h3 className="text-sm font-semibold text-gray-900">Suggested Knowledge Articles</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {knowledgeSuggestions.map((article) => (
+                        <div key={article.id} className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-gray-900 truncate">{article.title}</div>
+                            {article.category && (
+                              <span className="text-xs text-gray-500">{article.category}</span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => applyArticleToResponse(article)}
+                            className="ml-2 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                          >
+                            Use
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
