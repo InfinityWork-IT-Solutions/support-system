@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "default-secret-key")

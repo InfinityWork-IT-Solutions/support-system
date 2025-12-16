@@ -24,9 +24,13 @@ TROUBLESHOOTING:
 """
 
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 # Get the database connection URL from environment variables
 # This MUST be set for the application to start

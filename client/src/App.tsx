@@ -200,6 +200,9 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   
+  // Error state
+  const [error, setError] = useState<string | null>(null)
+  
   // Get user position and organization from localStorage
   const userPosition = (() => {
     try {
@@ -294,16 +297,33 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   }>({ name: '', is_default: false })
   const [activeSettingsSection, setActiveSettingsSection] = useState<string>('imap')
 
-  const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
+  const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets, error: ticketsError } = useQuery({
     queryKey: ['tickets', filters],
-    queryFn: () => api.getTickets(filters),
+    queryFn: async () => {
+      try {
+        return await api.getTickets(filters)
+      } catch (err: any) {
+        console.error('Error fetching tickets:', err)
+        setError(err?.message || 'Failed to load tickets')
+        return []
+      }
+    },
     enabled: !showSettings,
+    retry: false,
   })
 
-  const { data: stats } = useQuery({
+  const { data: stats, error: statsError } = useQuery({
     queryKey: ['stats'],
-    queryFn: api.getStats,
+    queryFn: async () => {
+      try {
+        return await api.getStats()
+      } catch (err: any) {
+        console.error('Error fetching stats:', err)
+        return null
+      }
+    },
     enabled: !showSettings,
+    retry: false,
   })
 
   const { data: selectedTicket, isLoading: ticketLoading } = useQuery({
@@ -1680,6 +1700,54 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
               </div>
             )}
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Display error if any
+  if (error) {
+    return (
+      <div className="min-h-screen dashboard-bg flex items-center justify-center p-4">
+        <div className="max-w-md w-full enterprise-card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Error Loading Dashboard</h2>
+          </div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setError(null)
+                refetchTickets()
+              }}
+              className="enterprise-btn enterprise-btn-primary flex-1"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </button>
+            <button
+              onClick={onLogout}
+              className="enterprise-btn enterprise-btn-secondary"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show loading state while initial data is loading
+  if (ticketsLoading && tickets.length === 0) {
+    return (
+      <div className="min-h-screen dashboard-bg flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-white text-lg">Loading dashboard...</p>
         </div>
       </div>
     )
