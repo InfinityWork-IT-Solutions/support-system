@@ -1,0 +1,610 @@
+/**
+ * API Client Module
+ * =================
+ * This module provides TypeScript types and API functions for communicating
+ * with the FastAPI backend.
+ */
+
+const API_BASE_URL = '/api';
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface Ticket {
+  id: number;
+  sender_email: string;
+  subject: string;
+  body: string;
+  category: string | null;
+  urgency: string | null;
+  summary: string | null;
+  fix_steps: string | null;
+  draft_response: string | null;
+  approval_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  received_at: string;
+  updated_at: string;
+  approved_at: string | null;
+  sent_at: string | null;
+  ai_processed: boolean;
+  assigned_to: number | null;
+  assigned_to_user?: TeamMember;
+  sla_deadline: string | null;
+  sla_status: string | null;
+  thread_id: string | null;
+  in_reply_to: string | null;
+  message_id: string | null;
+  approved_by: string | null;
+  messages?: TicketMessage[];
+}
+
+export interface TicketMessage {
+  id: number;
+  ticket_id: number;
+  sender_email: string;
+  subject: string;
+  body: string;
+  received_at: string;
+  message_id: string | null;
+  in_reply_to: string | null;
+}
+
+export interface AppSettings {
+  [key: string]: string;
+}
+
+export interface Analytics {
+  by_category: Array<{ name: string; value: number }>;
+  by_urgency: Array<{ name: string; value: number }>;
+  total_tickets: number;
+  approved_count: number;
+  rejected_count: number;
+  sent_count: number;
+  ai_processed_count: number;
+  approval_rate: number;
+  rejection_rate: number;
+  send_rate: number;
+}
+
+export interface PerformanceMetrics {
+  avg_processing_time_hours: number;
+  avg_approval_time_hours: number;
+  avg_resolution_time_hours: number;
+  total_processed: number;
+  approvals_by_member: Array<{ member: string; count: number }>;
+  today_tickets: number;
+  today_processed: number;
+  today_sent: number;
+}
+
+export interface VolumeTrends {
+  daily_volume: Array<{ date: string; count: number }>;
+  weekly_volume: Array<{ week: string; count: number }>;
+  monthly_volume: Array<{ month: string; count: number }>;
+}
+
+export interface Template {
+  id: number;
+  name: string;
+  category: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SchedulerStatus {
+  enabled: boolean;
+  interval_minutes: number;
+  last_run: string | null;
+  next_run: string | null;
+}
+
+export interface SlackSettings {
+  webhook_url: string;
+  notify_on_new: boolean;
+  notify_on_urgent: boolean;
+  notify_on_process: boolean;
+}
+
+export interface KnowledgeArticle {
+  id: number;
+  title: string;
+  category: string | null;
+  keywords: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Survey {
+  id: number;
+  ticket_id: number;
+  token: string;
+  sent_at: string | null;
+  submitted_at: string | null;
+  rating: number | null;
+  feedback: string | null;
+}
+
+export interface SurveyStats {
+  total_sent: number;
+  total_responses: number;
+  average_rating: number;
+  ratings_breakdown: Array<{ rating: number; count: number }>;
+}
+
+export interface AutoResponderSettings {
+  enabled: boolean;
+  subject_template: string;
+  body_template: string;
+}
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface SlaSummary {
+  total_tickets: number;
+  on_time: number;
+  at_risk: number;
+  breached: number;
+  on_time_percentage: number;
+}
+
+export interface SlaSettings {
+  low_urgency_hours: number;
+  medium_urgency_hours: number;
+  high_urgency_hours: number;
+}
+
+export interface SavedView {
+  id: number;
+  name: string;
+  status: string | null;
+  category: string | null;
+  urgency: string | null;
+  search: string | null;
+  sla_breached: boolean | null;
+  assigned_to: number | null;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface QuickFilter {
+  id: number;
+  name: string;
+  status: string | null;
+  category: string | null;
+  urgency: string | null;
+}
+
+// ============================================================================
+// API CLIENT FUNCTIONS
+// ============================================================================
+
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export const api = {
+  // Authentication
+  auth: {
+    login: (username: string, password: string) =>
+      request<{ user: any }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      }),
+    emailLogin: (email: string, password: string) =>
+      request<{ user: any }>('/auth/email-login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }),
+    register: (data: {
+      email: string;
+      password: string;
+      first_name: string;
+      last_name: string;
+      position?: string;
+      organization?: string;
+    }) =>
+      request<{ user: any }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    logout: () => request('/auth/logout', { method: 'POST' }),
+    me: () => request<{ user: any }>('/auth/me'),
+    googleLogin: () => window.open('/api/auth/google/login', '_blank'),
+    googleStatus: () => request<{ configured: boolean }>('/auth/google/status'),
+  },
+
+  // Tickets
+  tickets: {
+    list: (params?: {
+      status?: string;
+      category?: string;
+      urgency?: string;
+      search?: string;
+      sla_breached?: boolean;
+      assigned_to?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            query.append(key, String(value));
+          }
+        });
+      }
+      return request<Ticket[]>(`/tickets?${query.toString()}`);
+    },
+    get: (id: number) => request<Ticket>(`/tickets/${id}`),
+    getByCustomer: (email: string) => request<Ticket[]>(`/tickets/customer/${email}`),
+    fetch: () => request<{ fetched: number; created: number }>('/tickets/fetch', { method: 'POST' }),
+    process: (id: number) => request<Ticket>(`/tickets/${id}/process`, { method: 'POST' }),
+    processAll: () => request<{ processed: number }>('/tickets/process-all', { method: 'POST' }),
+    updateDraft: (id: number, draft: string) =>
+      request<Ticket>(`/tickets/${id}/draft`, {
+        method: 'PUT',
+        body: JSON.stringify({ draft_response: draft }),
+      }),
+    approve: (id: number) => request<Ticket>(`/tickets/${id}/approve`, { method: 'POST' }),
+    reject: (id: number) => request<Ticket>(`/tickets/${id}/reject`, { method: 'POST' }),
+    send: (id: number) => request<Ticket>(`/tickets/${id}/send`, { method: 'POST' }),
+    bulkApprove: (ids: number[]) =>
+      request<{ approved: number }>('/tickets/bulk-approve', {
+        method: 'POST',
+        body: JSON.stringify({ ticket_ids: ids }),
+      }),
+    bulkReject: (ids: number[]) =>
+      request<{ rejected: number }>('/tickets/bulk-reject', {
+        method: 'POST',
+        body: JSON.stringify({ ticket_ids: ids }),
+      }),
+    bulkSend: (ids: number[]) =>
+      request<{ sent: number }>('/tickets/bulk-send', {
+        method: 'POST',
+        body: JSON.stringify({ ticket_ids: ids }),
+      }),
+    assign: (id: number, memberId: number) =>
+      request<Ticket>(`/tickets/${id}/assign`, {
+        method: 'POST',
+        body: JSON.stringify({ member_id: memberId }),
+      }),
+    export: () => request('/tickets/export'),
+    stats: {
+      summary: () => request<Analytics>('/tickets/stats/summary'),
+      analytics: () => request<Analytics>('/tickets/stats/analytics'),
+      performance: () => request<PerformanceMetrics>('/tickets/stats/performance'),
+      trends: () => request<VolumeTrends>('/tickets/stats/trends'),
+    },
+    sla: {
+      summary: () => request<SlaSummary>('/tickets/sla/summary'),
+      priorityQueue: () => request<Ticket[]>('/tickets/sla/priority-queue'),
+      refresh: () => request('/tickets/sla/refresh', { method: 'POST' }),
+      getSettings: () => request<SlaSettings>('/tickets/sla/settings'),
+      updateSettings: (settings: SlaSettings) =>
+        request<SlaSettings>('/tickets/sla/settings', {
+          method: 'POST',
+          body: JSON.stringify(settings),
+        }),
+    },
+  },
+
+  // Settings
+  settings: {
+    get: () => request<AppSettings>('/settings'),
+    update: (settings: AppSettings) =>
+      request<AppSettings>('/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ settings }),
+      }),
+    testImap: () => request('/settings/test-imap', { method: 'POST' }),
+    testSmtp: () => request('/settings/test-smtp', { method: 'POST' }),
+    scheduler: {
+      get: () => request<SchedulerStatus>('/settings/scheduler'),
+      update: (enabled: boolean, interval: number) =>
+        request<SchedulerStatus>('/settings/scheduler', {
+          method: 'POST',
+          body: JSON.stringify({ enabled, interval_minutes: interval }),
+        }),
+      start: () => request('/settings/scheduler/start', { method: 'POST' }),
+      stop: () => request('/settings/scheduler/stop', { method: 'POST' }),
+    },
+    slack: {
+      get: () => request<SlackSettings>('/settings/slack'),
+      update: (settings: SlackSettings) =>
+        request<SlackSettings>('/settings/slack', {
+          method: 'POST',
+          body: JSON.stringify(settings),
+        }),
+      test: () => request('/settings/slack/test', { method: 'POST' }),
+    },
+    autoResponder: {
+      get: () => request<AutoResponderSettings>('/settings/auto-responder'),
+      update: (settings: AutoResponderSettings) =>
+        request<AutoResponderSettings>('/settings/auto-responder', {
+          method: 'POST',
+          body: JSON.stringify(settings),
+        }),
+    },
+    emailNotifications: {
+      get: () => request('/settings/email-notifications'),
+      update: (enabled: boolean) =>
+        request('/settings/email-notifications', {
+          method: 'POST',
+          body: JSON.stringify({ enabled }),
+        }),
+      test: () => request('/settings/email-notifications/test', { method: 'POST' }),
+    },
+  },
+
+  // Templates
+  templates: {
+    list: () => request<Template[]>('/templates'),
+    get: (id: number) => request<Template>(`/templates/${id}`),
+    create: (data: { name: string; category?: string; content: string }) =>
+      request<Template>('/templates', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: { name?: string; category?: string; content?: string }) =>
+      request<Template>(`/templates/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) => request(`/templates/${id}`, { method: 'DELETE' }),
+  },
+
+  // Knowledge Base
+  knowledge: {
+    list: () => request<KnowledgeArticle[]>('/knowledge'),
+    get: (id: number) => request<KnowledgeArticle>(`/knowledge/${id}`),
+    create: (data: { title: string; category?: string; keywords?: string; content: string }) =>
+      request<KnowledgeArticle>('/knowledge', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: { title?: string; category?: string; keywords?: string; content?: string }) =>
+      request<KnowledgeArticle>(`/knowledge/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) => request(`/knowledge/${id}`, { method: 'DELETE' }),
+    suggestions: (ticketId: number) => request<KnowledgeArticle[]>(`/knowledge/suggestions?ticket_id=${ticketId}`),
+  },
+
+  // Surveys
+  surveys: {
+    list: () => request<Survey[]>('/surveys'),
+    getStats: () => request<SurveyStats>('/surveys/stats'),
+    create: (ticketId: number) =>
+      request<Survey>('/surveys/create', {
+        method: 'POST',
+        body: JSON.stringify({ ticket_id: ticketId }),
+      }),
+    send: (id: number) => request(`/surveys/${id}/send`, { method: 'POST' }),
+    submit: (token: string, rating: number, feedback?: string) =>
+      request(`/surveys/submit/${token}`, {
+        method: 'POST',
+        body: JSON.stringify({ rating, feedback }),
+      }),
+    delete: (id: number) => request(`/surveys/${id}`, { method: 'DELETE' }),
+  },
+
+  // Team
+  team: {
+    list: () => request<TeamMember[]>('/team'),
+    get: (id: number) => request<TeamMember>(`/team/${id}`),
+    create: (data: { name: string; email: string; role: string }) =>
+      request<TeamMember>('/team', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: { name?: string; email?: string; role?: string }) =>
+      request<TeamMember>(`/team/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) => request(`/team/${id}`, { method: 'DELETE' }),
+  },
+
+  // Views
+  views: {
+    list: () => request<SavedView[]>('/views'),
+    get: (id: number) => request<SavedView>(`/views/${id}`),
+    create: (data: {
+      name: string;
+      status?: string;
+      category?: string;
+      urgency?: string;
+      search?: string;
+      sla_breached?: boolean;
+      assigned_to?: number;
+      is_default?: boolean;
+    }) =>
+      request<SavedView>('/views', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: Partial<SavedView>) =>
+      request<SavedView>(`/views/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) => request(`/views/${id}`, { method: 'DELETE' }),
+    quickFilters: () => request<QuickFilter[]>('/views/quick-filters/list'),
+  },
+
+  // Flat API methods for Dashboard compatibility
+  getTickets: (filters?: any) => {
+    const query = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          query.append(key, String(value));
+        }
+      });
+    }
+    return request<Ticket[]>(`/tickets?${query.toString()}`);
+  },
+  getTicket: (id: number) => request<Ticket>(`/tickets/${id}`),
+  getStats: () => request<Analytics>('/tickets/stats/summary'),
+  getAnalytics: () => request<Analytics>('/tickets/stats/analytics'),
+  getPerformanceMetrics: () => request<PerformanceMetrics>('/tickets/stats/performance'),
+  getVolumeTrends: (days: number = 30) => request<VolumeTrends>(`/tickets/stats/trends?days=${days}`),
+  getSettings: () => request<AppSettings>('/settings'),
+  updateSettings: (settings: Partial<AppSettings>) =>
+    request<AppSettings>('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
+    }),
+  getTemplates: () => request<Template[]>('/templates'),
+  getScheduler: () => request<SchedulerStatus>('/settings/scheduler'),
+  updateScheduler: (enabled: boolean, interval: number) =>
+    request<SchedulerStatus>('/settings/scheduler', {
+      method: 'POST',
+      body: JSON.stringify({ enabled, interval_minutes: interval }),
+    }),
+  getSlackSettings: () => request<SlackSettings>('/settings/slack'),
+  updateSlackSettings: (settings: SlackSettings) =>
+    request<SlackSettings>('/settings/slack', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
+  getAutoResponderSettings: () => request<AutoResponderSettings>('/settings/auto-responder'),
+  updateAutoResponderSettings: (settings: AutoResponderSettings) =>
+    request<AutoResponderSettings>('/settings/auto-responder', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
+  getEmailNotificationSettings: () => request('/settings/email-notifications'),
+  updateEmailNotificationSettings: (enabled: boolean) =>
+    request('/settings/email-notifications', {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    }),
+  getKnowledgeArticles: (params?: { search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.search) {
+      query.append('search', params.search);
+    }
+    return request<KnowledgeArticle[]>(`/knowledge?${query.toString()}`);
+  },
+  getKnowledgeSuggestions: (category?: string, keywords?: string) => {
+    const query = new URLSearchParams();
+    if (category) query.append('category', category);
+    if (keywords) query.append('keywords', keywords);
+    return request<KnowledgeArticle[]>(`/knowledge/suggestions?${query.toString()}`);
+  },
+  getCustomerHistory: (email: string, excludeId?: number) => {
+    const query = new URLSearchParams();
+    if (excludeId) query.append('exclude_id', String(excludeId));
+    return request<Ticket[]>(`/tickets/customer/${email}?${query.toString()}`);
+  },
+  getTeamMembers: (activeOnly?: boolean) => {
+    const query = activeOnly ? '?active_only=true' : '';
+    return request<TeamMember[]>(`/team${query}`);
+  },
+  getSlaSummary: () => request<SlaSummary>('/tickets/sla/summary'),
+  getPriorityQueue: (limit: number = 20) => request<Ticket[]>(`/tickets/sla/priority-queue?limit=${limit}`),
+  getSlaSettings: () => request<SlaSettings>('/tickets/sla/settings'),
+  updateSlaSettings: (settings: SlaSettings) =>
+    request<SlaSettings>('/tickets/sla/settings', {
+      method: 'POST',
+      body: JSON.stringify(settings),
+    }),
+  getSavedViews: () => request<SavedView[]>('/views'),
+  getQuickFilters: () => request<QuickFilter[]>('/views/quick-filters/list'),
+  getSurveyStats: () => request<SurveyStats>('/surveys/stats'),
+  fetchEmails: () => request<{ fetched: number; created: number }>('/tickets/fetch', { method: 'POST' }),
+  processAll: () => request<{ processed: number }>('/tickets/process-all', { method: 'POST' }),
+  processTicket: (id: number) => request<Ticket>(`/tickets/${id}/process`, { method: 'POST' }),
+  approveTicket: (id: number) => request<Ticket>(`/tickets/${id}/approve`, { method: 'POST' }),
+  rejectTicket: (id: number) => request<Ticket>(`/tickets/${id}/reject`, { method: 'POST' }),
+  sendResponse: (id: number) => request<Ticket>(`/tickets/${id}/send`, { method: 'POST' }),
+  updateDraft: (id: number, draft: string) =>
+    request<Ticket>(`/tickets/${id}/draft`, {
+      method: 'PUT',
+      body: JSON.stringify({ draft_response: draft }),
+    }),
+  createTemplate: (data: { name: string; category?: string; content: string }) =>
+    request<Template>('/templates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateTemplate: (id: number, data: { name?: string; category?: string; content?: string }) =>
+    request<Template>(`/templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteTemplate: (id: number) => request(`/templates/${id}`, { method: 'DELETE' }),
+  createKnowledgeArticle: (data: { title: string; category?: string; keywords?: string; content: string }) =>
+    request<KnowledgeArticle>('/knowledge', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateKnowledgeArticle: (id: number, data: { title?: string; category?: string; keywords?: string; content?: string }) =>
+    request<KnowledgeArticle>(`/knowledge/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteKnowledgeArticle: (id: number) => request(`/knowledge/${id}`, { method: 'DELETE' }),
+  createTeamMember: (data: { name: string; email: string; role: string }) =>
+    request<TeamMember>('/team', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateTeamMember: (id: number, data: { name?: string; email?: string; role?: string }) =>
+    request<TeamMember>(`/team/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteTeamMember: (id: number) => request(`/team/${id}`, { method: 'DELETE' }),
+  createSavedView: (data: {
+    name: string;
+    status?: string;
+    category?: string;
+    urgency?: string;
+    search?: string;
+    sla_breached?: boolean;
+    assigned_to?: number;
+    is_default?: boolean;
+  }) =>
+    request<SavedView>('/views', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  deleteSavedView: (id: number) => request(`/views/${id}`, { method: 'DELETE' }),
+  exportTickets: (filters?: any) => {
+    const query = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          query.append(key, String(value));
+        }
+      });
+    }
+    // Return the export URL for download
+    return `${API_BASE_URL}/tickets/export?${query.toString()}`;
+  },
+};
+

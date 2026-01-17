@@ -40,6 +40,7 @@ from app.database import engine, Base, SessionLocal
 from app.routes import tickets, settings, templates, knowledge, surveys, team, views, auth
 from app.models import Settings as SettingsModel
 from app.services.scheduler_service import start_scheduler
+from app.init_data import init_default_data
 
 # ============================================================================
 # DATABASE INITIALIZATION
@@ -71,6 +72,9 @@ async def lifespan(app: FastAPI):
     """
     db = SessionLocal()
     try:
+        # Initialize default data (Templates & Knowledge Base)
+        init_default_data(db)
+
         # Check if scheduler is enabled in settings
         scheduler_enabled = db.query(SettingsModel).filter(SettingsModel.key == "scheduler_enabled").first()
         scheduler_interval = db.query(SettingsModel).filter(SettingsModel.key == "scheduler_interval_minutes").first()

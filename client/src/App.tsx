@@ -94,12 +94,12 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, Ticket, AppSettings, Analytics, PerformanceMetrics, VolumeTrends, Template, SchedulerStatus, SlackSettings, KnowledgeArticle, Survey, SurveyStats, AutoResponderSettings, TeamMember, SlaSummary, SlaSettings, SavedView, QuickFilter } from './lib/api'
-import { 
-  Mail, 
-  RefreshCw, 
-  CheckCircle, 
-  XCircle, 
-  Send, 
+import {
+  Mail,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Send,
   Search,
   ChevronRight,
   Zap,
@@ -199,10 +199,10 @@ function App() {
 function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: () => void }) {
   const queryClient = useQueryClient()
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
-  
+
   // Error state
   const [error, setError] = useState<string | null>(null)
-  
+
   // Get user position and organization from localStorage
   const userPosition = (() => {
     try {
@@ -232,11 +232,13 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   })
   const [editedDraft, setEditedDraft] = useState('')
   const [settingsForm, setSettingsForm] = useState<Partial<AppSettings>>({})
-  const [testResult, setTestResult] = useState<{type: string; success: boolean; message: string} | null>(null)
+  const [testResult, setTestResult] = useState<{ type: string; success: boolean; message: string } | null>(null)
   const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(new Set())
   const [showTemplates, setShowTemplates] = useState(false)
   const [templateForm, setTemplateForm] = useState<{ name: string; category: string; content: string }>({ name: '', category: '', content: '' })
   const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null)
+  const [viewTemplate, setViewTemplate] = useState<Template | null>(null)
+  const [viewArticle, setViewArticle] = useState<KnowledgeArticle | null>(null)
   const [slackForm, setSlackForm] = useState<{
     webhook_url: string;
     notify_on_new: boolean;
@@ -362,10 +364,14 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
     enabled: showAnalytics,
   })
 
-  const { data: templates = [] } = useQuery({
+  const { data: templates = [], isLoading: templatesLoading, error: templatesError } = useQuery({
     queryKey: ['templates'],
     queryFn: () => api.getTemplates(),
   })
+
+  useEffect(() => {
+    console.log('Templates Query State:', { templates, templatesLoading, templatesError })
+  }, [templates, templatesLoading, templatesError])
 
   const { data: schedulerStatus } = useQuery({
     queryKey: ['scheduler'],
@@ -594,7 +600,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   })
 
   const updateTemplateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name?: string; category?: string; content?: string } }) => 
+    mutationFn: ({ id, data }: { id: number; data: { name?: string; category?: string; content?: string } }) =>
       api.updateTemplate(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] })
@@ -611,7 +617,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   })
 
   const updateSchedulerMutation = useMutation({
-    mutationFn: ({ enabled, interval }: { enabled: boolean; interval: number }) => 
+    mutationFn: ({ enabled, interval }: { enabled: boolean; interval: number }) =>
       api.updateScheduler(enabled, interval),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduler'] })
@@ -659,7 +665,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
   })
 
   const updateArticleMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { title?: string; category?: string; keywords?: string; content?: string } }) => 
+    mutationFn: ({ id, data }: { id: number; data: { title?: string; category?: string; keywords?: string; content?: string } }) =>
       api.updateKnowledgeArticle(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge'] })
@@ -845,10 +851,10 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
     }
   }
 
-  const getSelectedPendingIds = () => 
+  const getSelectedPendingIds = () =>
     tickets.filter(t => selectedTicketIds.has(t.id) && t.approval_status === 'PENDING' && t.ai_processed).map(t => t.id)
-  
-  const getSelectedApprovedIds = () => 
+
+  const getSelectedApprovedIds = () =>
     tickets.filter(t => selectedTicketIds.has(t.id) && t.approval_status === 'APPROVED' && !t.sent_at).map(t => t.id)
 
   const handleEditTemplate = (template: Template) => {
@@ -1065,7 +1071,11 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                 ) : (
                   <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto scrollbar-thin">
                     {knowledgeArticles.map((article) => (
-                      <div key={article.id} className="p-4 hover:bg-gray-50 transition-colors group">
+                      <div
+                        key={article.id}
+                        className="p-4 hover:bg-gray-50 transition-colors group cursor-pointer"
+                        onClick={() => setViewArticle(article)}
+                      >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <h3 className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">{article.title}</h3>
@@ -1084,14 +1094,20 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                           </div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={() => handleEditArticle(article)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEditArticle(article)
+                              }}
                               className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition-colors"
                               title="Edit article"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => deleteArticleMutation.mutate(article.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteArticleMutation.mutate(article.id)
+                              }}
                               disabled={deleteArticleMutation.isPending}
                               className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                               title="Delete article"
@@ -1107,6 +1123,54 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                 )}
               </div>
             </div>
+
+            {viewArticle && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+                  <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <BookOpen className="w-5 h-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{viewArticle.title}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          {viewArticle.category && (
+                            <span className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-medium">
+                              {viewArticle.category}
+                            </span>
+                          )}
+                          {viewArticle.keywords && (
+                            <span className="text-xs text-gray-400">
+                              {viewArticle.keywords}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setViewArticle(null)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+                  <div className="p-6 overflow-y-auto custom-scrollbar">
+                    <div className="prose prose-sm max-w-none text-gray-700">
+                      <pre className="whitespace-pre-wrap font-sans">{viewArticle.content}</pre>
+                    </div>
+                  </div>
+                  <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end">
+                    <button
+                      onClick={() => setViewArticle(null)}
+                      className="enterprise-btn enterprise-btn-secondary"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1151,6 +1215,47 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
               </div>
             </div>
           </div>
+
+          {viewTemplate && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-fade-in">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-violet-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{viewTemplate.name}</h3>
+                      {viewTemplate.category && (
+                        <span className="text-xs px-2 py-0.5 bg-violet-50 text-violet-600 rounded-full font-medium">
+                          {viewTemplate.category}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setViewTemplate(null)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar">
+                  <pre className="whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm">
+                    {viewTemplate.content}
+                  </pre>
+                </div>
+                <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end">
+                  <button
+                    onClick={() => setViewTemplate(null)}
+                    className="enterprise-btn enterprise-btn-secondary"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-6">
             <div className="detail-section">
@@ -1235,7 +1340,11 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                 ) : (
                   <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                     {templates.map((template) => (
-                      <div key={template.id} className="p-4 border border-gray-200 rounded-xl hover:border-violet-200 hover:bg-violet-50/30 transition-all group">
+                      <div
+                        key={template.id}
+                        className="p-4 border border-gray-200 rounded-xl hover:border-violet-200 hover:bg-violet-50/30 transition-all group cursor-pointer"
+                        onClick={() => setViewTemplate(template)}
+                      >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h3 className="font-medium text-gray-900">{template.name}</h3>
@@ -1247,14 +1356,20 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                           </div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={() => handleEditTemplate(template)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEditTemplate(template)
+                              }}
                               className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition-colors"
                               title="Edit template"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => deleteTemplateMutation.mutate(template.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteTemplateMutation.mutate(template.id)
+                              }}
                               disabled={deleteTemplateMutation.isPending}
                               className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                               title="Delete template"
@@ -1393,19 +1508,19 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} />
                     <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'white', 
-                        border: '1px solid #e2e8f0', 
+                    <Tooltip
+                      contentStyle={{
+                        background: 'white',
+                        border: '1px solid #e2e8f0',
                         borderRadius: '12px',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }} 
+                      }}
                     />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       {analytics.by_urgency.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.name === 'High' ? '#ef4444' : entry.name === 'Medium' ? '#f59e0b' : '#10b981'} 
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.name === 'High' ? '#ef4444' : entry.name === 'Medium' ? '#f59e0b' : '#10b981'}
                         />
                       ))}
                     </Bar>
@@ -1447,8 +1562,8 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={volumeTrends.trends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis 
-                    dataKey="date" 
+                  <XAxis
+                    dataKey="date"
                     tickFormatter={(value: string) => {
                       const [year, month, day] = value.split('-').map(Number);
                       return `${month}/${day}`;
@@ -1457,24 +1572,24 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                     interval="preserveStartEnd"
                   />
                   <YAxis tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip 
+                  <Tooltip
                     labelFormatter={(value: string) => {
                       const [year, month, day] = value.split('-').map(Number);
                       const date = new Date(year, month - 1, day);
                       return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                     }}
                     formatter={(value: number) => [value, 'Tickets']}
-                    contentStyle={{ 
-                      background: 'white', 
-                      border: '1px solid #e2e8f0', 
+                    contentStyle={{
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
                       borderRadius: '12px',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="url(#colorGradient)" 
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="url(#colorGradient)"
                     strokeWidth={3}
                     dot={{ fill: '#0ea5e9', strokeWidth: 2, r: 4 }}
                     activeDot={{ r: 6, fill: '#2563eb', stroke: '#fff', strokeWidth: 2 }}
@@ -1643,9 +1758,8 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
                       key={star}
-                      className={`w-4 h-4 ${
-                        star <= (surveyStats?.average_rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
-                      }`}
+                      className={`w-4 h-4 ${star <= (surveyStats?.average_rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
+                        }`}
                     />
                   ))}
                 </div>
@@ -2034,16 +2148,15 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                       <div className="enterprise-card p-5">
                         <label className="block text-sm font-semibold text-gray-700 mb-3">Scheduler Status</label>
                         <button
-                          onClick={() => updateSchedulerMutation.mutate({ 
-                            enabled: !schedulerStatus?.enabled, 
-                            interval: schedulerStatus?.interval_minutes || 5 
+                          onClick={() => updateSchedulerMutation.mutate({
+                            enabled: !schedulerStatus?.enabled,
+                            interval: schedulerStatus?.interval_minutes || 5
                           })}
                           disabled={updateSchedulerMutation.isPending}
-                          className={`w-full enterprise-btn ${
-                            schedulerStatus?.enabled 
-                              ? 'enterprise-btn-danger' 
-                              : 'enterprise-btn-success'
-                          }`}
+                          className={`w-full enterprise-btn ${schedulerStatus?.enabled
+                            ? 'enterprise-btn-danger'
+                            : 'enterprise-btn-success'
+                            }`}
                         >
                           {schedulerStatus?.enabled ? (
                             <>
@@ -2064,9 +2177,9 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                           value={schedulerStatus?.interval_minutes || 5}
                           onChange={(e) => {
                             const newInterval = parseInt(e.target.value)
-                            updateSchedulerMutation.mutate({ 
-                              enabled: schedulerStatus?.enabled || false, 
-                              interval: newInterval 
+                            updateSchedulerMutation.mutate({
+                              enabled: schedulerStatus?.enabled || false,
+                              interval: newInterval
                             })
                           }}
                           className="enterprise-select"
@@ -2088,7 +2201,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                       <div>
                         <div className="text-sm font-medium text-gray-900">Current Configuration</div>
                         <div className="text-xs text-gray-500">
-                          Status: <span className={schedulerStatus?.enabled ? 'text-green-600 font-medium' : 'text-gray-600'}>{schedulerStatus?.enabled ? 'Enabled' : 'Disabled'}</span> | 
+                          Status: <span className={schedulerStatus?.enabled ? 'text-green-600 font-medium' : 'text-gray-600'}>{schedulerStatus?.enabled ? 'Enabled' : 'Disabled'}</span> |
                           Interval: Every {schedulerStatus?.interval_minutes || 5} minutes
                         </div>
                       </div>
@@ -2434,7 +2547,7 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                         <div>
                           <h4 className="text-sm font-semibold text-indigo-900">How to Add Users</h4>
                           <p className="text-xs text-indigo-700 mt-1">
-                            Fill in the form below to add new team members. They will be able to receive ticket assignments and email notifications. 
+                            Fill in the form below to add new team members. They will be able to receive ticket assignments and email notifications.
                             Use the role field to designate permissions: <strong>Agent</strong> for standard support, <strong>Supervisor</strong> for team leads, or <strong>Admin</strong> for full access.
                           </p>
                         </div>
@@ -2515,21 +2628,19 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                             {teamMembers.map((member) => (
                               <div key={member.id} className={`enterprise-card p-4 flex items-center justify-between ${!member.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
                                 <div className="flex items-center gap-3">
-                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
-                                    member.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' :
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm ${member.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' :
                                     member.role === 'supervisor' ? 'bg-gradient-to-br from-blue-500 to-cyan-600' :
-                                    'bg-gradient-to-br from-gray-400 to-gray-500'
-                                  }`}>
+                                      'bg-gradient-to-br from-gray-400 to-gray-500'
+                                    }`}>
                                     {member.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                                   </div>
                                   <div>
                                     <div className="font-medium text-sm text-gray-900">{member.name}</div>
                                     <div className="text-xs text-gray-500">{member.email}</div>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                      member.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${member.role === 'admin' ? 'bg-purple-100 text-purple-700' :
                                       member.role === 'supervisor' ? 'bg-blue-100 text-blue-700' :
-                                      'bg-gray-100 text-gray-700'
-                                    }`}>{member.role}</span>
+                                        'bg-gray-100 text-gray-700'
+                                      }`}>{member.role}</span>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -3255,19 +3366,17 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                     {selectedTicket.messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`p-4 rounded-xl border transition-all ${
-                          msg.is_incoming 
-                            ? 'bg-gradient-to-br from-slate-50 to-gray-50 border-gray-200' 
-                            : 'bg-gradient-to-br from-emerald-50 to-green-50 border-green-200 ml-8'
-                        }`}
+                        className={`p-4 rounded-xl border transition-all ${msg.is_incoming
+                          ? 'bg-gradient-to-br from-slate-50 to-gray-50 border-gray-200'
+                          : 'bg-gradient-to-br from-emerald-50 to-green-50 border-green-200 ml-8'
+                          }`}
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              msg.is_incoming 
-                                ? 'bg-gradient-to-br from-slate-200 to-gray-100' 
-                                : 'bg-gradient-to-br from-emerald-200 to-green-100'
-                            }`}>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${msg.is_incoming
+                              ? 'bg-gradient-to-br from-slate-200 to-gray-100'
+                              : 'bg-gradient-to-br from-emerald-200 to-green-100'
+                              }`}>
                               <User className={`w-4 h-4 ${msg.is_incoming ? 'text-slate-600' : 'text-emerald-600'}`} />
                             </div>
                             <span className="text-sm font-semibold text-gray-900">
@@ -3314,8 +3423,8 @@ function Dashboard({ currentUser, onLogout }: { currentUser: string; onLogout: (
                     </div>
                     <div className="detail-section-content space-y-3">
                       {customerHistory.map((historyTicket) => (
-                        <div 
-                          key={historyTicket.id} 
+                        <div
+                          key={historyTicket.id}
                           className="flex items-center justify-between bg-white p-4 rounded-xl border border-blue-100 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
                           onClick={() => handleSelectTicket(historyTicket)}
                         >
